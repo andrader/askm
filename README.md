@@ -35,16 +35,7 @@ askm --help
 
 ## Contributing
 
-### Development Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/andrader/askm
-cd askm
-
-# Install dependencies
-uv sync
-```
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on development setup, guidelines, and publishing.
 
 
 
