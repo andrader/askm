@@ -50,10 +50,18 @@ Use `none` to clear the list:
 jup config set agents none
 ```
 
-### 4. Add a skills repository ➕
+### 4. Add skills ➕
 
 ```bash
 jup add owner/repo --category productivity
+```
+
+You can also add local skills using relative or absolute paths:
+
+```bash
+jup add ./local-skills --category productivity
+jup add ../team-skills
+jup add /absolute/path/to/local-skills
 ```
 
 ### 5. Review what is installed 📋
@@ -80,6 +88,23 @@ repo/
 ```
 
 When you run `jup add owner/repo`, it clones the repository, finds every nested skill directory under `skills/` that contains a `SKILL.md` file, stores those skills in `~/.jup`, and records them in a lockfile.
+
+For local sources, `jup add` supports either of these layouts:
+
+```text
+local-skills/
+  skill-a/
+    SKILL.md
+  skill-b/
+    SKILL.md
+```
+
+or a single skill directory:
+
+```text
+single-skill/
+  SKILL.md
+```
 
 After that, `jup sync` installs the managed skills into the configured target locations. By default, `jup` uses symlinks, but you can switch to copying with:
 

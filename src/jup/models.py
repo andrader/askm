@@ -23,6 +23,9 @@ class JupConfig(BaseModel):
 
 class SkillSource(BaseModel):
     repo: str
+    source_type: str = "github"
+    source_path: Optional[str] = None
+    source_layout: Optional[str] = None
     category: Optional[str] = None
     skills: List[str] = Field(default_factory=list)
 

@@ -17,6 +17,8 @@ from .models import SkillSource, SyncMode, DEFAULT_AGENTS
 
 
 GH_PREFIX = "gh"  # Used to namespace GitHub sources in storage
+LOCAL_SOURCE_TYPE = "local"
+GITHUB_SOURCE_TYPE = "github"
 
 
 def rel_home(p):
@@ -51,76 +53,126 @@ def run_git_clone(repo_url: str, dest_dir: Path, **kwargs):
 
 @app.command("add")
 def add_skill(
-    repo: str = typer.Argument(..., help="GitHub repository (e.g., obra/superpowers)"),
+    repo: str = typer.Argument(
+        ...,
+        help="GitHub repository (owner/repo) or local skills directory",
+    ),
     category: str = typer.Option(
         "misc", "--category", help="Category for the skill (e.g., productivity/custom)"
     ),
     verbose: bool = False,
 ):
-    """Install skills from a GitHub repository."""
+    """Install skills from a GitHub repository or local directory."""
     verbose_state.verbose = verbose
-    if "/" not in repo:
-        print("[red]Repository must be in format 'owner/repo'[/red]")
-        raise typer.Exit(code=1)
+    source_type = GITHUB_SOURCE_TYPE
+    source_layout = None
+    source_key = repo
+    source_display = repo
+    found_skills: list[Path] = []
+    target_dir: Path | None = None
 
-    owner, repo_name = repo.split("/", 1)
-    repo_url = f"https://github.com/{repo}.git"
+    local_path = Path(repo).expanduser()
+    is_local_source = local_path.exists()
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
-        print(f"Cloning {repo_url} to {rel_home(temp_path)}...")
-        run_git_clone(repo_url, temp_path, depth=1)
-
-        skills_dir = temp_path / "skills"
-        if not skills_dir.exists() or not skills_dir.is_dir():
-            print(f"[red]No 'skills/' directory found in {repo}[/red]")
+    if is_local_source:
+        if not local_path.is_dir():
+            print(f"[red]Local source must be a directory: {repo}[/red]")
             raise typer.Exit(code=1)
 
-        # Determine internal storage path
-        storage_base = get_skills_storage_dir()
-        target_dir = storage_base / category / GH_PREFIX / owner / repo_name
+        resolved_local = local_path.resolve()
+        source_type = LOCAL_SOURCE_TYPE
+        source_key = str(resolved_local)
+        source_display = rel_home(resolved_local)
 
-        # Extract nested skills
-        found_skills: list[Path] = []
-        for item in skills_dir.iterdir():
-            # check if is dir and contains a SKILL.md file
-            if item.is_dir() and (item / "SKILL.md").exists():
-                found_skills.append(item)
+        if (resolved_local / "SKILL.md").exists():
+            source_layout = "single"
+            found_skills = [resolved_local]
+        else:
+            source_layout = "collection"
+            for item in resolved_local.iterdir():
+                if item.is_dir() and (item / "SKILL.md").exists():
+                    found_skills.append(item)
 
         if verbose_state.verbose:
-            print(f"Found {len(found_skills)} skills at [cyan]{rel_home(target_dir)}[/cyan]:\n\t" + ", ".join(f"[blue]{skill.name}[/blue]" for skill in found_skills))
+            print(
+                f"Found {len(found_skills)} local skills from [cyan]{source_display}[/cyan]:\n\t"
+                + ", ".join(f"[blue]{skill.name}[/blue]" for skill in found_skills)
+            )
         if not found_skills:
-            print("[red]No skills found inside the 'skills/' directory.[/red]")
+            print(
+                "[red]No skills found. Provide either a skill directory with SKILL.md or a directory containing skill subdirectories with SKILL.md.[/red]"
+            )
+            raise typer.Exit(code=1)
+    else:
+        if "/" not in repo:
+            print("[red]Repository must be in format 'owner/repo'[/red]")
             raise typer.Exit(code=1)
 
-        # Clear existing if any
-        if target_dir.exists():
-            print(f"Overwriting existing directory at {rel_home(target_dir)}...")
-            shutil.rmtree(target_dir)
+        owner, repo_name = repo.split("/", 1)
+        repo_url = f"https://github.com/{repo}.git"
 
-        # Copy all skills to internal storage
-        for skill in found_skills:
-            dest_skill_dir = target_dir / skill.name
-            shutil.copytree(skill, dest_skill_dir)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            print(f"Cloning {repo_url} to {rel_home(temp_path)}...")
+            run_git_clone(repo_url, temp_path, depth=1)
 
-        if verbose_state.verbose:
-            print(f"Copied skills to [cyan]{rel_home(target_dir)}[/cyan]")
+            skills_dir = temp_path / "skills"
+            if not skills_dir.exists() or not skills_dir.is_dir():
+                print(f"[red]No 'skills/' directory found in {repo}[/red]")
+                raise typer.Exit(code=1)
 
+            storage_base = get_skills_storage_dir()
+            target_dir = storage_base / category / GH_PREFIX / owner / repo_name
 
+            for item in skills_dir.iterdir():
+                if item.is_dir() and (item / "SKILL.md").exists():
+                    found_skills.append(item)
 
+            if verbose_state.verbose:
+                print(
+                    f"Found {len(found_skills)} skills at [cyan]{rel_home(target_dir)}[/cyan]:\n\t"
+                    + ", ".join(
+                        f"[blue]{skill.name}[/blue]" for skill in found_skills
+                    )
+                )
+            if not found_skills:
+                print("[red]No skills found inside the 'skills/' directory.[/red]")
+                raise typer.Exit(code=1)
 
-        # Update Lockfile
-        config = get_config()
-        lock = get_skills_lock(config)
-        lock.sources[repo] = SkillSource(
-            repo=repo, category=category, skills=[skill.name for skill in found_skills]
+            if target_dir.exists():
+                print(f"Overwriting existing directory at {rel_home(target_dir)}...")
+                shutil.rmtree(target_dir)
+
+            for skill in found_skills:
+                dest_skill_dir = target_dir / skill.name
+                shutil.copytree(skill, dest_skill_dir)
+
+            if verbose_state.verbose:
+                print(f"Copied skills to [cyan]{rel_home(target_dir)}[/cyan]")
+
+    config = get_config()
+    lock = get_skills_lock(config)
+    lock.sources[source_key] = SkillSource(
+        repo=repo,
+        source_type=source_type,
+        source_path=source_key if source_type == LOCAL_SOURCE_TYPE else None,
+        source_layout=source_layout,
+        category=category,
+        skills=[skill.name for skill in found_skills],
+    )
+    save_skills_lock(config, lock)
+
+    if source_type == LOCAL_SOURCE_TYPE:
+        print(
+            f"✅ Successfully added {len(found_skills)} local skills from {source_display}"
         )
-        save_skills_lock(config, lock)
+    else:
+        print(
+            f"✅ Successfully added {len(found_skills)} skills from {repo} to [green]{rel_home(target_dir)}[/green]"
+        )
 
-        print(f"✅ Successfully added {len(found_skills)} skills from {repo} to [green]{rel_home(target_dir)}[/green]")
-
-        # Trigger sync
-        sync_skills(verbose=verbose_state.verbose)
+    # Trigger sync
+    sync_skills(verbose=verbose_state.verbose)
 
 
 @app.command("remove")
@@ -140,15 +192,22 @@ def remove_skill(
     repo_to_remove = None
     skill_to_remove = None
 
-    if "/" in target and target in lock.sources:
+    if target in lock.sources:
         repo_to_remove = target
     else:
+        maybe_local_target = Path(target).expanduser()
+        if maybe_local_target.exists():
+            resolved_target = str(maybe_local_target.resolve())
+            if resolved_target in lock.sources:
+                repo_to_remove = resolved_target
+
         # Search for skill name
-        for repo, source in lock.sources.items():
-            if target in source.skills:
-                skill_to_remove = target
-                repo_to_remove = repo
-                break
+        if not repo_to_remove:
+            for repo, source in lock.sources.items():
+                if target in source.skills:
+                    skill_to_remove = target
+                    repo_to_remove = repo
+                    break
 
     if not repo_to_remove:
         print(f"[red]Could not find {target} in installed skills.[/red]")
@@ -249,14 +308,37 @@ def sync_skills(verbose: bool = False):
     # Process each skill source
     total_links = 0
 
-    for repo, source in lock.sources.items():
-        owner, repo_name = repo.split("/", 1)
-        storage_dir = (
-            get_skills_storage_dir() / str(source.category) / "gh" / owner / repo_name
-        )
+    for source_key, source in lock.sources.items():
+        source_type = source.source_type or GITHUB_SOURCE_TYPE
+        storage_dir = None
+        local_source_root = None
+
+        if source_type == LOCAL_SOURCE_TYPE:
+            local_path_str = source.source_path or source_key
+            local_source_root = Path(local_path_str).expanduser().resolve()
+        else:
+            repo_ref = source.repo or source_key
+            if "/" not in repo_ref:
+                print(f"⚠️  Invalid repository reference: [red]{repo_ref}[/red]")
+                continue
+            owner, repo_name = repo_ref.split("/", 1)
+            storage_dir = (
+                get_skills_storage_dir()
+                / str(source.category or "misc")
+                / GH_PREFIX
+                / owner
+                / repo_name
+            )
 
         for skill in source.skills:
-            skill_src_dir = storage_dir / skill
+            if source_type == LOCAL_SOURCE_TYPE:
+                if source.source_layout == "single":
+                    skill_src_dir = local_source_root
+                else:
+                    skill_src_dir = local_source_root / skill
+            else:
+                skill_src_dir = storage_dir / skill
+
             if not skill_src_dir.exists():
                 print(f"⚠️  Source dir for '[red]{skill}[/red]' missing: [red]{rel_home(skill_src_dir)}[/red]")
                 continue

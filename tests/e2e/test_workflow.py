@@ -76,3 +76,29 @@ def test_full_workflow(mock_env):
     # After removing the only skill, the repo should be gone from lockfile
     result = runner.invoke(app, ["list"])
     assert "No skills installed" in result.stdout
+
+
+def test_local_directory_workflow(mock_env):
+    local_skills_dir = mock_env.parent / "local-skills"
+    local_skills_dir.mkdir()
+    (local_skills_dir / "skill-a").mkdir()
+    (local_skills_dir / "skill-b").mkdir()
+    (local_skills_dir / "skill-a" / "SKILL.md").write_text("A")
+    (local_skills_dir / "skill-b" / "SKILL.md").write_text("B")
+
+    result = runner.invoke(app, ["add", str(local_skills_dir)])
+    assert result.exit_code == 0
+    assert "Successfully added 2 local skills" in result.stdout
+
+    result = runner.invoke(app, ["sync"])
+    assert result.exit_code == 0
+    assert "Synced 2 skills" in result.stdout
+
+    from jup.config import get_scope_dir, JupConfig
+    scope_dir = get_scope_dir(JupConfig())
+    linked_skill_dir = scope_dir / "skills" / "skill-a"
+    assert linked_skill_dir.exists()
+    assert linked_skill_dir.is_symlink()
+
+    (local_skills_dir / "skill-a" / "SKILL.md").write_text("A updated")
+    assert (linked_skill_dir / "SKILL.md").read_text() == "A updated"
