@@ -1,5 +1,7 @@
 # Project Guidelines
 
+ALWAYS use `uv run ...` instead of `python -m ...` to run commands in the repo, as `uv` ensures the correct environment and dependencies are used.
+
 ## Code Style
 - Target Python 3.12+ and keep changes aligned with the existing `src/jup` layout.
 - Prefer small, focused edits that preserve the current Typer CLI and Pydantic model patterns.
@@ -14,15 +16,14 @@
 
 ## Build and Test
 - Set up the environment with `uv sync` and `uv pip install -e .`.
-- Run the test suite with `pytest`.
+- Run the test suite with `uv run pytest`.
 - Build distributions with `uv build`.
 - Publish with `uv publish`.
-- Use `jup --help` as the basic post-install smoke check.
+- Use `uv run jup --help` as the basic post-install smoke check.
 
 ## Conventions
 - Keep the `sync-mode` alias behavior intact: it maps to `sync_mode` in the config model and CLI commands.
-- `config set agents` accepts a comma-separated list, and `none` clears the list.
-- `add` only accepts `owner/repo` and only installs nested skill directories that contain `SKILL.md` under a top-level `skills/` folder.
+- Keep `add` and local source handling aligned with README-documented behavior instead of duplicating CLI details here.
 - `sync` only manages entries in the lockfile; do not assume it preserves arbitrary manual edits inside managed target directories.
 - Tests patch `DEFAULT_AGENTS` in both `jup.config` and `jup.models`, so keep those imports stable when refactoring.
 - When changing CLI behavior, update the relevant tests under [tests/integration](tests/integration) and [tests/e2e](tests/e2e).
