@@ -1,4 +1,4 @@
-# jup
+# jup ✨
 
 `jup` is a small command-line tool for installing and syncing agent skills across the local skill directories used by supported AI assistants.
 
@@ -8,7 +8,9 @@ It helps you:
 - keep installed skills organized in a lockfile so they can be synced again later
 - copy or link skills into the directories used by agents like Gemini, Copilot, and Claude
 
-## Install
+## Quick Start 🚀
+
+### 1. Install `jup` 📦
 
 The preferred way to install `jup` is from PyPI with `uv`:
 
@@ -17,7 +19,7 @@ uv tool install jup
 jup --help
 ```
 
-If you do not want to install it globally, you can run it on demand:
+If you do not want to install it, you can run it on demand:
 
 ```bash
 uvx jup --help
@@ -30,15 +32,13 @@ pip install jup
 jup --help
 ```
 
-## Quick Start
-
-1. Check the current configuration:
+### 2. Check the current configuration ⚙️
 
 ```bash
 jup config show
 ```
 
-2. Choose which agent directories should receive synced skills:
+### 3. Choose which agent directories should receive synced skills 🤖
 
 ```bash
 jup config set agents gemini,copilot,claude
@@ -50,33 +50,33 @@ Use `none` to clear the list:
 jup config set agents none
 ```
 
-3. Add a skills repository:
+### 4. Add a skills repository ➕
 
 ```bash
 jup add owner/repo --category productivity
 ```
 
-4. Review what is installed:
+### 5. Review what is installed 📋
 
 ```bash
 jup list
 ```
 
-5. Push the managed skills into the configured agent directories:
+### 6. Push the managed skills into the configured agent directories 🔄
 
 ```bash
 jup sync
 ```
 
-## What It Does
+## What It Does 🧭
 
 `jup` works with repositories that follow a simple structure:
 
 ```text
 repo/
-	skills/
-		skill-name/
-			SKILL.md
+  skills/
+    skill-name/
+      SKILL.md
 ```
 
 When you run `jup add owner/repo`, it clones the repository, finds every nested skill directory under `skills/` that contains a `SKILL.md` file, stores those skills in `~/.jup`, and records them in a lockfile.
@@ -93,7 +93,7 @@ The main configuration values are:
 - `agents`: a comma-separated list of agent names
 - `sync-mode`: `link` or `copy`
 
-## Supported Agents
+## Supported Agents 🧩
 
 `jup` includes built-in locations for these agent names:
 
@@ -102,6 +102,6 @@ The main configuration values are:
 - `claude`
 - `default`
 
-## Contributing
+## Contributing 🤝
 
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, workflow, and publishing details.
