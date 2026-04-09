@@ -101,9 +101,11 @@ def config_unset(key: str = typer.Argument(..., help="Config key to unset")):
     save_config(config)
     print(f"Unset {key} (reverted to default)")
 
+
+# Import command registrations after app and shared state are defined.
+from . import commands  # noqa: E402,F401
+
 def main():
-    # Import commands to register them
-    from . import commands  # noqa
     app()
 
 if __name__ == "__main__":
