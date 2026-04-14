@@ -298,10 +298,12 @@ wheels = [
 
 [[package]]
 name = "jup"
-version = "0.4.2"
+version = "0.5.0"
 source = { editable = "." }
 dependencies = [
+    { name = "prompt-toolkit" },
     { name = "pydantic" },
+    { name = "pygments" },
     { name = "rich" },
     { name = "typer" },
 ]
@@ -318,7 +320,9 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "prompt-toolkit", specifier = ">=3.0.51" },
     { name = "pydantic", specifier = ">=2.10.6" },
+    { name = "pygments", specifier = ">=2.19.2" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "typer", specifier = ">=0.15.1" },
 ]

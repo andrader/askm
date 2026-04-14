@@ -8,6 +8,7 @@ from pathlib import Path
 
 import typer
 from rich import print
+from rich.markdown import Markdown
 
 from .config import (
     get_all_agents,
@@ -20,6 +21,8 @@ from .config import (
 from .main import app, verbose_state
 from .models import SkillSource, SyncMode
 
+from typing import Dict, Optional, Any
+
 GH_PREFIX = "gh"  # Used to namespace GitHub sources in storage
 LOCAL_SOURCE_TYPE = "local"
 GITHUB_SOURCE_TYPE = "github"
@@ -27,6 +30,54 @@ GITHUB_SOURCE_TYPE = "github"
 
 def rel_home(p):
     return str(p).replace(str(Path.home()), "~")
+
+
+def fetch_remote_skill_md(
+    repo: str, skill_name: Optional[str] = None, internal_path: str = ""
+) -> str:
+    """Fetch SKILL.md content from GitHub."""
+    # Try different common paths for SKILL.md
+    paths_to_try = []
+    base_path = internal_path.strip("/")
+
+    if skill_name:
+        if base_path:
+            # If internal_path points to the skill directory itself
+            paths_to_try.append(f"{base_path}/SKILL.md")
+            # If internal_path points to a parent directory
+            paths_to_try.append(f"{base_path}/{skill_name}/SKILL.md")
+        else:
+            # Common default locations
+            paths_to_try.append(f"skills/{skill_name}/SKILL.md")
+            paths_to_try.append(f".claude/skills/{skill_name}/SKILL.md")
+            paths_to_try.append(f"{skill_name}/SKILL.md")
+            paths_to_try.append("SKILL.md")
+    else:
+        if base_path:
+            paths_to_try.append(f"{base_path}/SKILL.md")
+            paths_to_try.append("SKILL.md")
+        else:
+            paths_to_try.append("SKILL.md")
+            paths_to_try.append("skills/SKILL.md")
+            paths_to_try.append(".claude/skills/SKILL.md")
+
+    for p in paths_to_try:
+        url = f"https://raw.githubusercontent.com/{repo}/main/{p}"
+        try:
+            with urllib.request.urlopen(url) as response:
+                return response.read().decode()
+        except Exception:
+            # Try master branch if main fails
+            url = f"https://raw.githubusercontent.com/{repo}/master/{p}"
+            try:
+                with urllib.request.urlopen(url) as response:
+                    return response.read().decode()
+            except Exception:
+                continue
+
+    return f"SKILL.md not found in {repo}.\nTried paths:\n- " + "\n- ".join(
+        paths_to_try
+    )
 
 
 def run_git_clone(repo_url: str, dest_dir: Path, **kwargs):
@@ -549,6 +600,105 @@ def list_skills():
     print(table)
 
 
+@app.command("show")
+def show_skill(
+    target: str = typer.Argument(
+        ..., help="GitHub repository (owner/repo) or local skills directory."
+    ),
+    skill: str = typer.Option(
+        None, "--skill", help="[GitHub only] Specific skill name to show"
+    ),
+    verbose: bool = False,
+):
+    """Show the content of SKILL.md and the directory structure of a skill."""
+    from rich.tree import Tree
+    from rich.console import Console
+
+    console = Console()
+
+    local_path = Path(target).expanduser()
+    if local_path.exists():
+        # Local source
+        if local_path.is_file():
+            if local_path.name == "SKILL.md":
+                content = local_path.read_text()
+                console.print(Markdown(content))
+            else:
+                print(f"[red]{target} is a file but not SKILL.md[/red]")
+        else:
+            skill_md = local_path / "SKILL.md"
+            if skill_md.exists():
+                content = skill_md.read_text()
+                console.print(Markdown(content))
+            else:
+                print(f"[yellow]No SKILL.md found in {target}[/yellow]")
+
+            # Show tree
+            def add_to_tree(path: Path, tree: Tree):
+                for item in sorted(path.iterdir()):
+                    if item.name.startswith(".") or item.name == "__pycache__":
+                        continue
+                    if item.is_dir():
+                        branch = tree.add(f"[bold blue]{item.name}/[/bold blue]")
+                        add_to_tree(item, branch)
+                    else:
+                        tree.add(item.name)
+
+            tree = Tree(f"[bold cyan]{rel_home(local_path)}[/bold cyan]")
+            add_to_tree(local_path, tree)
+            console.print(tree)
+    else:
+        # Remote source
+        if "/" not in target:
+            print("[red]Target must be a local path or 'owner/repo'[/red]")
+            raise typer.Exit(code=1)
+
+        repo = target
+        print(f"Fetching information for [cyan]{repo}[/cyan]...")
+
+        content = fetch_remote_skill_md(repo, skill)
+        console.print(Markdown(content))
+
+        # Show remote tree using GitHub API
+        try:
+            api_url = f"https://api.github.com/repos/{repo}/git/trees/main?recursive=1"
+            req = urllib.request.Request(api_url)
+            # Add User-Agent to avoid 403
+            req.add_header("User-Agent", "jup-cli")
+            with urllib.request.urlopen(req) as response:
+                tree_data = json.loads(response.read().decode())
+
+            tree = Tree(f"[bold cyan]github.com/{repo}[/bold cyan]")
+            nodes = {"": tree}
+
+            # GitHub returns flat list of paths
+            for item in tree_data.get("tree", []):
+                path = item["path"]
+                if path.startswith(".") or "/." in path or "__pycache__" in path:
+                    continue
+
+                parts = path.split("/")
+                parent_path = "/".join(parts[:-1])
+                name = parts[-1]
+
+                if parent_path in nodes:
+                    if item["type"] == "tree":
+                        nodes[path] = nodes[parent_path].add(
+                            f"[bold blue]{name}/[/bold blue]"
+                        )
+                    else:
+                        nodes[parent_path].add(name)
+
+            console.print(tree)
+        except Exception as e:
+            if verbose:
+                print(f"[yellow]Could not fetch remote tree: {e}[/yellow]")
+            else:
+                print(
+                    "[yellow]Could not fetch remote tree (GitHub API rate limit or private repo?)[/yellow]"
+                )
+
+
 @app.command("find")
 def find_skills(
     query: str = typer.Argument(..., help="Search query for the skills registry"),
@@ -564,7 +714,6 @@ def find_skills(
     verbose: bool = False,
 ):
     """Search for skills in the skills.sh registry."""
-    from rich.prompt import IntPrompt
     from rich.table import Table
 
     verbose_state.verbose = verbose
@@ -594,67 +743,223 @@ def find_skills(
         print(f"No skills found for '[yellow]{query}[/yellow]' matching filters.")
         return
 
-    table = Table(title=f"Search Results for '{query}'")
-    table.add_column("#", style="dim", width=4)
-    table.add_column("Skill / Name", style="magenta")
-    table.add_column("Source / Repo", style="cyan")
-    table.add_column("Installs", style="green", justify="right")
-
-    for i, skill in enumerate(skills, 1):
-        name = skill.get("name", skill.get("skillId", "Unknown"))
-        # Example id: "github/owner/repo"
-        source_id = skill.get("id", "")
-        repo = (
-            source_id.replace("github/", "")
-            if source_id.startswith("github/")
-            else source_id
-        )
-        installs = skill.get("installs", 0)
-        table.add_row(str(i), name, repo, f"{installs:,}")
-
-    print(table)
-
     if not interactive:
+        table = Table(title=f"Search Results for '{query}'")
+        table.add_column("#", style="dim", width=4)
+        table.add_column("Skill / Name", style="magenta")
+        table.add_column("Source / Repo", style="cyan")
+        table.add_column("Installs", style="green", justify="right")
+
+        for i, skill in enumerate(skills, 1):
+            name = skill.get("name", skill.get("skillId", "Unknown"))
+            source_id = skill.get("id", "")
+            repo = (
+                source_id.replace("github/", "")
+                if source_id.startswith("github/")
+                else source_id
+            )
+            installs = skill.get("installs", 0)
+            table.add_row(str(i), name, repo, f"{installs:,}")
+        print(table)
         return
 
-    selection = IntPrompt.ask(
-        "Enter the number of the skill to install (or 0 to cancel)",
-        default=0,
-    )
+    from prompt_toolkit import Application
+    from prompt_toolkit.key_binding import KeyBindings
+    from prompt_toolkit.layout import HSplit, Layout, VSplit, Window
+    from prompt_toolkit.layout.controls import FormattedTextControl
+    from prompt_toolkit.layout.containers import WindowAlign
+    from prompt_toolkit.formatted_text import HTML
 
-    if selection == 0:
-        print("Cancelled.")
-        return
+    kb = KeyBindings()
+    state: Dict[str, Any] = {
+        "index": 0,
+        "selected": set(),
+        "preview_content": "Select a skill and press [Right] to preview.",
+        "skills_to_install": [],
+        "view": "list",  # "list" or "preview"
+    }
 
-    if 1 <= selection <= len(skills):
-        selected_skill = skills[selection - 1]
-        source_id = selected_skill.get("id", "")
-        # Remove github/ prefix
+    def get_skill_at(idx):
+        return skills[idx]
+
+    def get_repo_and_path(skill):
+        source_id = skill.get("id", "")
         full_path = (
             source_id.replace("github/", "")
             if source_id.startswith("github/")
             else source_id
         )
-
-        # Split into repo (owner/repo) and internal path
         parts = full_path.split("/")
         if len(parts) >= 2:
             repo = f"{parts[0]}/{parts[1]}"
-            # The internal path is everything after the second part
             internal_path = "/".join(parts[2:]) if len(parts) > 2 else ""
         else:
             repo = full_path
             internal_path = ""
+        return repo, internal_path
 
-        print(
-            f"Installing [magenta]{selected_skill.get('name')}[/magenta] from [cyan]{repo}[/cyan]..."
-        )
-        if internal_path:
-            if verbose_state.verbose:
-                print(f"Using internal path: [cyan]{internal_path}[/cyan]")
-            add_skill(repo=repo, path=internal_path, verbose=verbose)
+    def update_preview(event=None):
+        skill = get_skill_at(state["index"])
+        repo, internal_path = get_repo_and_path(skill)
+        state["preview_content"] = f"Fetching SKILL.md for {repo}..."
+        if event:
+            event.app.invalidate()
+
+        md_content = fetch_remote_skill_md(repo, skill.get("name"), internal_path)
+        state["preview_content"] = md_content
+
+    @kb.add("up")
+    def _(event):
+        state["index"] = (state["index"] - 1) % len(skills)
+        if state["view"] == "preview":
+            update_preview(event)
+
+    @kb.add("down")
+    def _(event):
+        state["index"] = (state["index"] + 1) % len(skills)
+        if state["view"] == "preview":
+            update_preview(event)
+
+    @kb.add("right")
+    def _(event):
+        if state["view"] == "list":
+            update_preview(event)
+            state["view"] = "preview"
+
+    @kb.add("left")
+    @kb.add("escape")
+    def _(event):
+        if state["view"] == "preview":
+            state["view"] = "list"
         else:
-            add_skill(repo=repo, verbose=verbose)
+            event.app.exit()
+
+    @kb.add("space")
+    def _(event):
+        if state["view"] == "list":
+            if state["index"] in state["selected"]:
+                state["selected"].remove(state["index"])
+            else:
+                state["selected"].add(state["index"])
+
+    @kb.add("enter")
+    def _(event):
+        state["skills_to_install"] = [skills[i] for i in state["selected"]]
+        if not state["skills_to_install"] and state["view"] == "list":
+            # If nothing selected, install the current one
+            state["skills_to_install"] = [skills[state["index"]]]
+        event.app.exit()
+
+    @kb.add("c-c")
+    def _(event):
+        event.app.exit()
+
+    def get_list_text():
+        lines = []
+        list_width = 48  # Total width for the list entries
+        for i, skill in enumerate(skills):
+            prefix = "[x]" if i in state["selected"] else "[ ]"
+            pointer = ">" if i == state["index"] else " "
+            name = skill.get("name", "Unknown")
+            source_id = skill.get("id", "")
+            repo = (
+                source_id.replace("github/", "")
+                if source_id.startswith("github/")
+                else source_id
+            )
+            installs = skill.get("installs", 0)
+            formatted_installs = f"[{installs:,}]"
+
+            # Main label: name (repo)
+            label = f"{name} ({repo})"
+
+            # Calculate how much space we have for the label
+            # pointer(2) + prefix(4) + padding(min 1) + installs(len)
+            fixed_parts_len = 2 + 4 + 1 + len(formatted_installs)
+            available_for_label = list_width - fixed_parts_len
+
+            if len(label) > available_for_label:
+                label = label[: available_for_label - 3] + "..."
+
+            padding_len = list_width - (2 + 4 + len(label) + len(formatted_installs))
+            padding = " " * padding_len
+
+            import xml.sax.saxutils as saxutils
+
+            safe_label = saxutils.escape(label)
+            safe_installs = saxutils.escape(formatted_installs)
+
+            # Construct the line with HTML tags
+            content = f"{pointer} {prefix} <b>{safe_label}</b>{padding}<ansigreen>{safe_installs}</ansigreen>"
+
+            if i == state["index"]:
+                lines.append(f"<reverse>{content}</reverse>")
+            else:
+                lines.append(content)
+        return HTML("\n".join(lines) + "\n")
+
+    def get_preview_text():
+        content = state["preview_content"]
+        if state["view"] != "preview" and not content.startswith("#"):
+            return "Press [Right] to preview SKILL.md"
+
+        from prompt_toolkit.formatted_text import PygmentsTokens
+        from pygments.lexers.markup import MarkdownLexer
+
+        # We can use Pygments for basic MD highlighting in the TUI
+        # or just return the text. Since we are in a TUI,
+        # actual Rich rendering to the screen is complex.
+        # Let's use PygmentsTokens for a nice look.
+        return PygmentsTokens(list(MarkdownLexer().get_tokens(content)))
+
+    # We use a simple FormattedTextControl for the preview, but we might want to render it with Rich first
+    # For now, let's keep it simple.
+
+    app_ui = Application(
+        layout=Layout(
+            HSplit(
+                [
+                    Window(
+                        content=FormattedTextControl(
+                            HTML(
+                                "<b>jup find</b> - Use Up/Down to navigate, Space to toggle, Right to preview, Enter to install, Esc to exit"
+                            )
+                        ),
+                        height=1,
+                        align=WindowAlign.CENTER,
+                    ),
+                    Window(height=1, char="-"),
+                    VSplit(
+                        [
+                            Window(
+                                content=FormattedTextControl(get_list_text), width=50
+                            ),
+                            Window(width=1, char="|"),
+                            Window(
+                                content=FormattedTextControl(
+                                    lambda: get_preview_text()
+                                ),
+                                wrap_lines=True,
+                            ),
+                        ]
+                    ),
+                ]
+            )
+        ),
+        key_bindings=kb,
+        full_screen=True,
+    )
+    app_ui.run()
+
+    if state["skills_to_install"]:
+        for skill in state["skills_to_install"]:
+            repo, internal_path = get_repo_and_path(skill)
+            print(
+                f"Installing [magenta]{skill.get('name')}[/magenta] from [cyan]{repo}[/cyan]..."
+            )
+            if internal_path:
+                add_skill(repo=repo, path=internal_path, verbose=verbose)
+            else:
+                add_skill(repo=repo, verbose=verbose)
     else:
-        print("[red]Invalid selection.[/red]")
-        raise typer.Exit(code=1)
+        print("Cancelled.")
