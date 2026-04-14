@@ -29,8 +29,31 @@ packages = ["src/jup"]
 dev = [
     "pytest>=8.0.0",
     "ruff>=0.3.0",
+    "ty>=0.0.29",
+    "commitizen>=4.1.0",
+    "python-semantic-release>=9.0.0",
+    "pre-commit>=4.0.0",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_provider = "pep621"
+version = "0.3.2"
+update_changelog_on_bump = true
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+branch = "main"
+build_command = "uv build"
+upload_to_pypi = false
+upload_to_release = true
+
+[tool.semantic_release.branches.main]
+match = "main"
+
+[tool.semantic_release.changelog]
+changelog_file = "CHANGELOG.md"
