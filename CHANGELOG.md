@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.4.1 (2026-04-14)
+
+### Bug Fixes
+
+- **ci**: Fix permissions for dist directory in release workflow
+  ([`aa8a94a`](https://github.com/andrader/jup/commit/aa8a94af796416b59c08e330f0f0114bb3a62194))
+
+
 ## v0.4.0 (2026-04-14)
 
 ### Bug Fixes
