@@ -77,11 +77,23 @@ jup add ../team-skills
 jup add /absolute/path/to/local-skills
 ```
 
-### 5. Review what is installed 📋
+### 5. Review and update skills 📋
 
 ```bash
 jup list
 ```
+
+- Shows all installed skills, their source repo (with clickable links in supported terminals), install/update date, and which agent directories they are synced to.
+
+#### Check for updates and apply them
+
+```bash
+jup sync --update
+```
+
+- Checks all installed GitHub skills for updates and applies them if available. Tracks the last update date for each source.
+- You can also use `jup sync --check` to only check for updates without applying them.
+- The update status and last checked date are shown in `jup list`.
 
 ### 6. Push the managed skills into the configured agent directories 🔄
 
@@ -124,6 +136,12 @@ After that, `jup sync` installs the managed skills into the configured target lo
 ```bash
 jup config set sync-mode copy
 ```
+
+### Update and Check Features
+
+- `jup sync --update` checks for updates to all installed GitHub skills and updates them if new versions are available. The last update date is tracked per source.
+- `jup sync --check` checks for updates but does not apply them.
+- `jup list` shows the last update/check date and provides clickable links to the source repositories (in supported terminals).
 
 The main configuration values are:
 
