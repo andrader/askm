@@ -24,6 +24,7 @@ BANNER = r"""
 
 
 def version_callback(value: bool):
+    """Callback to show the version of the application."""
     if value:
         print(BANNER)
         try:
