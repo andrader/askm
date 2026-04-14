@@ -101,6 +101,12 @@ jup sync --update
 jup sync
 ```
 
+## Comparison with `npx skills` ⚖️
+
+While Vercel's `npx skills` is a fantastic package manager for AI skills with a built-in search registry, `jup` focuses heavily on **centralized lockfile management** and **local symlink synchronization** across multiple agents. `jup` is ideal if you want to maintain a single source of truth for your skills and automatically symlink them to Gemini, Claude, and Copilot simultaneously, especially when authoring skills locally.
+
+For a full breakdown of commands, pros, and cons, see the [jup vs. npx skills comparison](docs/jup-vs-npx-skills.md).
+
 ## What It Does 🧭
 
 `jup` works with repositories that follow a simple structure:
