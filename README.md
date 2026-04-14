@@ -25,6 +25,8 @@ uv tool install jup
 jup --help
 ```
 
+![jup help](docs/images/help.svg)
+
 If you do not want to install it, you can run it on demand:
 
 ```bash
@@ -43,6 +45,8 @@ jup --help
 ```bash
 jup config show
 ```
+
+![jup config show](docs/images/config_show.svg)
 
 ### 3. Choose which agent directories should receive synced skills 🤖
 
@@ -88,6 +92,8 @@ jup add /absolute/path/to/local-skills
 ```bash
 jup list
 ```
+
+![jup list](docs/images/list.svg)
 
 - Shows all installed skills, their source repo (with clickable links in supported terminals), install/update date, and which agent directories they are synced to.
 
