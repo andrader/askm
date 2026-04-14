@@ -8,6 +8,12 @@ It helps you:
 - keep installed skills organized in a lockfile so they can be synced again later
 - copy or link skills into the directories used by agents like Gemini, Copilot, and Claude
 
+## Features ✨
+
+- **Multi-Agent Support**: Sync skills for Gemini, Copilot, and Claude.
+- **Local-First**: Works with local skill directories and global configurations.
+- **Git Integration**: Install and update skills directly from GitHub.
+
 ## Quick Start 🚀
 
 ### 1. Install `jup` 📦
