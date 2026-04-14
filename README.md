@@ -4,7 +4,7 @@
 
 It helps you:
 
-- install skills from GitHub repositories that expose a top-level `skills/` folder
+- install skills from GitHub repositories that expose a top-level `skills/` folder (or `.claude/skills/` as a fallback)
 - keep installed skills organized in a lockfile so they can be synced again later
 - copy or link skills into the directories used by agents like Gemini, Copilot, and Claude
 
@@ -67,6 +67,7 @@ jup add owner/repo --path custom/skills/dir --skills skill-a,skill-b --category 
 - `--path` and `--skills` only work with GitHub sources (not local directories).
 - If `--skills` is omitted, all skills in the specified path are added.
 - If `--path` is omitted, the default is `skills/`.
+- If the specified skills directory does not exist, `jup` will also look for `.claude/skills/` as a fallback.
 
 You can also add local skills using relative or absolute paths (these ignore `--path` and `--skills`):
 
@@ -99,7 +100,7 @@ repo/
       SKILL.md
 ```
 
-When you run `jup add owner/repo`, it clones the repository, finds every nested skill directory under `skills/` that contains a `SKILL.md` file, stores those skills in `~/.jup`, and records them in a lockfile.
+When you run `jup add owner/repo`, it clones the repository, finds every nested skill directory under `skills/` (or `.claude/skills/` if present) that contains a `SKILL.md` file, stores those skills in `~/.jup`, and records them in a lockfile.
 
 For local sources, `jup add` supports either of these layouts:
 

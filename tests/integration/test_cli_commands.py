@@ -44,6 +44,13 @@ def mock_repo_structure(tmp_path):
     skill2.mkdir()
     (skill2 / "SKILL.md").write_text("Skill 2")
     
+    # Also create a fallback .claude/skills/ with a unique skill
+    claude_skills_dir = repo_dir / ".claude" / "skills"
+    claude_skills_dir.mkdir(parents=True)
+    fallback_skill = claude_skills_dir / "fallback-skill"
+    fallback_skill.mkdir()
+    (fallback_skill / "SKILL.md").write_text("Fallback Skill")
+    
     return repo_dir
 
 
@@ -105,6 +112,17 @@ def test_add_skill_with_path_and_skills_options(mock_jup_dir, mock_repo_structur
         assert sorted(lock.sources["owner/repo"].skills) == ["skill1", "skill2"]
 
         # Remove for next test
+        runner.invoke(app, ["remove", "owner/repo", "--yes"])
+
+        # (3b) Remove skills/ and test fallback to .claude/skills/
+        import shutil as _shutil
+        skills_dir = mock_repo_structure / "skills"
+        _shutil.rmtree(skills_dir)
+        result = runner.invoke(app, ["add", "owner/repo"])
+        assert result.exit_code == 0
+        assert "Successfully added 1 skills from owner/repo" in result.stdout
+        lock = get_skills_lock(JupConfig())
+        assert lock.sources["owner/repo"].skills == ["fallback-skill"]
         runner.invoke(app, ["remove", "owner/repo", "--yes"])
 
         # (4) Error if --skills or --path is used with a local source

@@ -55,13 +55,13 @@ def run_git_clone(repo_url: str, dest_dir: Path, **kwargs):
 def add_skill(
     repo: str = typer.Argument(
         ...,
-        help="GitHub repository (owner/repo) or local skills directory",
+        help="GitHub repository (owner/repo) or local skills directory. For GitHub, if the skills directory is missing, jup will also look for .claude/skills/ as a fallback.",
     ),
     category: str = typer.Option(
         "misc", "--category", help="Category for the skill (e.g., productivity/custom)"
     ),
     path: str = typer.Option(
-        "skills/", "--path", help="[GitHub only] Path to skills directory in the repo (default: skills/)"
+        "skills/", "--path", help="[GitHub only] Path to skills directory in the repo (default: skills/). If not found, .claude/skills/ is tried as a fallback."
     ),
     skills: str = typer.Option(
         None, "--skills", help="[GitHub only] Comma-separated list of skill names to add (default: all)"
@@ -130,9 +130,16 @@ def add_skill(
 
             # Support both default and custom subdirectory for skills
             skills_dir = temp_path / path if path else temp_path / "skills"
+            fallback_skills_dir = temp_path / ".claude" / "skills"
             if not skills_dir.exists() or not skills_dir.is_dir():
-                print(f"[red]No '{path or 'skills/'}' directory found in {repo}[/red]")
-                raise typer.Exit(code=1)
+                # Try fallback
+                if fallback_skills_dir.exists() and fallback_skills_dir.is_dir():
+                    skills_dir = fallback_skills_dir
+                    if verbose_state.verbose:
+                        print(f"[yellow]Falling back to .claude/skills/ in {repo}[/yellow]")
+                else:
+                    print(f"[red]No '{path or 'skills/'}' directory found in {repo}, and no fallback .claude/skills/ present.[/red]")
+                    raise typer.Exit(code=1)
 
             storage_base = get_skills_storage_dir()
             target_dir = storage_base / category / GH_PREFIX / owner / repo_name
