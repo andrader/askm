@@ -66,6 +66,26 @@ jup config set agents none
 jup add owner/repo --category productivity
 ```
 
+#### Search for skills 🔍
+
+Search for skills in the `skills.sh` registry:
+
+```bash
+jup find instagram
+```
+
+By default, this lists matching skills. You can filter and limit the results:
+
+```bash
+jup find instagram --limit 5 --min-installs 100
+```
+
+To install a skill interactively from the search results, use the `--interactive` (or `-it`) flag:
+
+```bash
+jup find instagram --interactive
+```
+
 #### Advanced GitHub Usage
 
 You can use `--path` to specify a subdirectory (default: `skills/`), and `--skills` to select specific skill names (comma-separated) to add from the skills directory:

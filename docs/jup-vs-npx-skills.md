@@ -16,7 +16,7 @@ Both `jup` and `npx skills` are CLI tools designed to manage and install Open Ag
 ## Command Reference
 
 ### `jup`
-*   `jup find <query>`: Interactively searches for available skills in the `skills.sh` registry.
+*   `jup find <query>`: Searches for available skills in the `skills.sh` registry. Lists results by default; use `--interactive` (`-it`) for interactive installation. Supports `--limit` (`-n`) and `--min-installs` (`-i`) filtering.
 *   `jup add <repo|path>`: Installs a skill from a GitHub repo or a local directory. Supports `--path` and `--skills` for sub-selection.
 *   `jup sync`: Syncs managed skills from the central storage into the configured agent directories (e.g., `.gemini/skills`, `.claude/skills`).
 *   `jup list`: Shows all installed skills, locations, and last update times.

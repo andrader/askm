@@ -344,11 +344,19 @@ def test_find_skills(mock_jup_dir):
 
     with patch("urllib.request.urlopen", return_value=mock_response):
         with patch("jup.commands.add_skill") as mock_add_skill:
-            # Select 1 to install
-            result = runner.invoke(app, ["find", "python"], input="1\n")
+            # Non-interactive mode (default)
+            result = runner.invoke(app, ["find", "python"])
             assert result.exit_code == 0
             assert "Skill 1" in result.stdout
             assert "owner/repo1" in result.stdout
+            mock_add_skill.assert_not_called()
+
+            # Interactive mode
+            result = runner.invoke(
+                app, ["find", "python", "--interactive"], input="1\n"
+            )
+            assert result.exit_code == 0
+            assert "Skill 1" in result.stdout
             mock_add_skill.assert_called_once_with(repo="owner/repo1", verbose=False)
 
 
@@ -363,7 +371,7 @@ def test_find_skills_cancel(mock_jup_dir):
 
     with patch("urllib.request.urlopen", return_value=mock_response):
         # Select 0 to cancel
-        result = runner.invoke(app, ["find", "python"], input="0\n")
+        result = runner.invoke(app, ["find", "python", "-it"], input="0\n")
         assert result.exit_code == 0
         assert "Cancelled" in result.stdout
 
@@ -387,10 +395,41 @@ def test_find_skills_nested_path(mock_jup_dir):
     with patch("urllib.request.urlopen", return_value=mock_response):
         with patch("jup.commands.add_skill") as mock_add_skill:
             # Select 1 to install
-            result = runner.invoke(app, ["find", "python"], input="1\n")
+            result = runner.invoke(
+                app, ["find", "python", "--interactive"], input="1\n"
+            )
             assert result.exit_code == 0
             assert "Nested Skill" in result.stdout
             assert "owner/repo1" in result.stdout
             mock_add_skill.assert_called_once_with(
                 repo="owner/repo1", path="nested/path", verbose=False
             )
+
+
+def test_find_skills_filtering(mock_jup_dir):
+    mock_data = {
+        "query": "python",
+        "skills": [
+            {"id": "github/owner/repo1", "name": "Skill 1", "installs": 10},
+            {"id": "github/owner/repo2", "name": "Skill 2", "installs": 100},
+            {"id": "github/owner/repo3", "name": "Skill 3", "installs": 1000},
+        ],
+    }
+    mock_response = MagicMock()
+    mock_response.read.return_value = json.dumps(mock_data).encode()
+    mock_response.__enter__.return_value = mock_response
+
+    with patch("urllib.request.urlopen", return_value=mock_response):
+        # Test --limit
+        result = runner.invoke(app, ["find", "python", "--limit", "2"])
+        assert result.exit_code == 0
+        assert "Skill 1" in result.stdout
+        assert "Skill 2" in result.stdout
+        assert "Skill 3" not in result.stdout
+
+        # Test --min-installs
+        result = runner.invoke(app, ["find", "python", "--min-installs", "500"])
+        assert result.exit_code == 0
+        assert "Skill 1" not in result.stdout
+        assert "Skill 2" not in result.stdout
+        assert "Skill 3" in result.stdout

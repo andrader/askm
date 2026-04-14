@@ -548,9 +548,18 @@ def list_skills():
 @app.command("find")
 def find_skills(
     query: str = typer.Argument(..., help="Search query for the skills registry"),
+    limit: int = typer.Option(
+        None, "--limit", "-n", help="Limit the number of results shown"
+    ),
+    min_installs: int = typer.Option(
+        0, "--min-installs", "-i", help="Minimum number of installs to filter results"
+    ),
+    interactive: bool = typer.Option(
+        False, "--interactive", "-it", help="Run in interactive mode to install skills"
+    ),
     verbose: bool = False,
 ):
-    """Search for skills in the skills.sh registry and install them interactively."""
+    """Search for skills in the skills.sh registry."""
     from rich.prompt import IntPrompt
     from rich.table import Table
 
@@ -568,8 +577,17 @@ def find_skills(
         raise typer.Exit(code=1)
 
     skills = data.get("skills", [])
+
+    # Filter by min_installs
+    if min_installs > 0:
+        skills = [s for s in skills if s.get("installs", 0) >= min_installs]
+
+    # Limit results
+    if limit is not None:
+        skills = skills[:limit]
+
     if not skills:
-        print(f"No skills found for '[yellow]{query}[/yellow]'.")
+        print(f"No skills found for '[yellow]{query}[/yellow]' matching filters.")
         return
 
     table = Table(title=f"Search Results for '{query}'")
@@ -591,6 +609,9 @@ def find_skills(
         table.add_row(str(i), name, repo, f"{installs:,}")
 
     print(table)
+
+    if not interactive:
+        return
 
     selection = IntPrompt.ask(
         "Enter the number of the skill to install (or 0 to cancel)",
