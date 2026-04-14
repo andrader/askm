@@ -1,6 +1,24 @@
 # CHANGELOG
 
 
+## v0.4.2 (2026-04-14)
+
+### Bug Fixes
+
+- **cli**: Improve version callback documentation
+  ([`ce89279`](https://github.com/andrader/jup/commit/ce892798163c72fbd2ca0b6aea63a0f474a499a1))
+
+### Continuous Integration
+
+- Add workflow_dispatch to release workflow
+  ([`f0dcc6e`](https://github.com/andrader/jup/commit/f0dcc6e53a293196b44a8dc3fc520d01e09edd95))
+
+### Documentation
+
+- Update README with features
+  ([`e6d376d`](https://github.com/andrader/jup/commit/e6d376d30056b95b6cbc021c7b762a53ff74abe0))
+
+
 ## v0.4.1 (2026-04-14)
 
 ### Bug Fixes
