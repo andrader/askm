@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.5.0 (2026-04-14)
+
+### Documentation
+
+- Add screenshots of the CLI output to the readme
+  ([`282007a`](https://github.com/andrader/jup/commit/282007ac40f17f5e1d1ccb703e2d79993f1107bd))
+
+### Features
+
+- **cli**: Make find command non-interactive by default and add filtering options
+  ([`28a5bcc`](https://github.com/andrader/jup/commit/28a5bcc36ec96dc7cb0c942dcbfa402d221d40bb))
+
+
 ## v0.4.2 (2026-04-14)
 
 ### Bug Fixes
