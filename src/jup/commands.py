@@ -60,9 +60,21 @@ def add_skill(
     category: str = typer.Option(
         "misc", "--category", help="Category for the skill (e.g., productivity/custom)"
     ),
+    path: str = typer.Option(
+        "skills/", "--path", help="[GitHub only] Path to skills directory in the repo (default: skills/)"
+    ),
+    skills: str = typer.Option(
+        None, "--skills", help="[GitHub only] Comma-separated list of skill names to add (default: all)"
+    ),
     verbose: bool = False,
 ):
-    """Install skills from a GitHub repository or local directory."""
+    """Install skills from a GitHub repository (optionally using --path/--skills) or a local directory.
+
+    For GitHub sources, you can:
+    - Use --path to specify a subdirectory under the repo (default: skills/)
+    - Use --skills to select specific skill names (comma-separated) to add from the skills directory
+    - Both options are ignored for local sources (paths or directories)
+    """
     verbose_state.verbose = verbose
     source_type = GITHUB_SOURCE_TYPE
     source_layout = None
@@ -116,17 +128,22 @@ def add_skill(
             print(f"Cloning {repo_url} to {rel_home(temp_path)}...")
             run_git_clone(repo_url, temp_path, depth=1)
 
-            skills_dir = temp_path / "skills"
+            # Support both default and custom subdirectory for skills
+            skills_dir = temp_path / path if path else temp_path / "skills"
             if not skills_dir.exists() or not skills_dir.is_dir():
-                print(f"[red]No 'skills/' directory found in {repo}[/red]")
+                print(f"[red]No '{path or 'skills/'}' directory found in {repo}[/red]")
                 raise typer.Exit(code=1)
 
             storage_base = get_skills_storage_dir()
             target_dir = storage_base / category / GH_PREFIX / owner / repo_name
 
-            for item in skills_dir.iterdir():
-                if item.is_dir() and (item / "SKILL.md").exists():
-                    found_skills.append(item)
+            all_skills = [item for item in skills_dir.iterdir() if item.is_dir() and (item / "SKILL.md").exists()]
+
+            if skills:
+                selected = set(s.strip() for s in skills.split(",") if s.strip())
+                found_skills = [item for item in all_skills if item.name in selected]
+            else:
+                found_skills = all_skills
 
             if verbose_state.verbose:
                 print(
@@ -136,7 +153,7 @@ def add_skill(
                     )
                 )
             if not found_skills:
-                print("[red]No skills found inside the 'skills/' directory.[/red]")
+                print(f"[red]No skills found inside the '{path}' directory matching selection.[/red]")
                 raise typer.Exit(code=1)
 
             if target_dir.exists():
@@ -307,6 +324,8 @@ def sync_skills(verbose: bool = False):
 
     # Process each skill source
     total_links = 0
+    synced_skills = 0
+    missing_skills: list[tuple[str, Path]] = []
 
     for source_key, source in lock.sources.items():
         source_type = source.source_type or GITHUB_SOURCE_TYPE
@@ -340,8 +359,14 @@ def sync_skills(verbose: bool = False):
                 skill_src_dir = storage_dir / skill
 
             if not skill_src_dir.exists():
-                print(f"⚠️  Source dir for '[red]{skill}[/red]' missing: [red]{rel_home(skill_src_dir)}[/red]")
+                missing_skills.append((skill, skill_src_dir))
+                if verbose_state.verbose:
+                    print(
+                        f"⚠️  Source dir for '[red]{skill}[/red]' missing: [red]{rel_home(skill_src_dir)}[/red]"
+                    )
                 continue
+
+            synced_skills += 1
 
             for target_base in targets:
                 target_skill_dir = target_base / skill
@@ -371,7 +396,12 @@ def sync_skills(verbose: bool = False):
                     if verbose_state.verbose:
                         print(f"📁 Copied [cyan]{rel_home(skill_src_dir)}[/cyan] -> [cyan]{rel_home(target_skill_dir)}[/cyan]")
 
-    print(f"🔄 Synced {sum(len(s.skills) for s in lock.sources.values())} skills across {len(targets)} locations.")
+    if missing_skills and not verbose_state.verbose:
+        print(
+            f"⚠️  Skipped {len(missing_skills)} missing skills from the lockfile."
+        )
+
+    print(f"🔄 Synced {synced_skills} skills across {len(targets)} locations.")
     if verbose_state.verbose:
         print(f"Added {total_links} symlinks (sync_mode=[cyan]{str(config.sync_mode)}[/cyan])")
 

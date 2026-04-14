@@ -56,7 +56,19 @@ jup config set agents none
 jup add owner/repo --category productivity
 ```
 
-You can also add local skills using relative or absolute paths:
+#### Advanced GitHub Usage
+
+You can use `--path` to specify a subdirectory (default: `skills/`), and `--skills` to select specific skill names (comma-separated) to add from the skills directory:
+
+```bash
+jup add owner/repo --path custom/skills/dir --skills skill-a,skill-b --category productivity
+```
+
+- `--path` and `--skills` only work with GitHub sources (not local directories).
+- If `--skills` is omitted, all skills in the specified path are added.
+- If `--path` is omitted, the default is `skills/`.
+
+You can also add local skills using relative or absolute paths (these ignore `--path` and `--skills`):
 
 ```bash
 jup add ./local-skills --category productivity

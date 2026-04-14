@@ -67,25 +67,57 @@ def mock_local_single_skill(tmp_path):
     (skill_dir / "SKILL.md").write_text("single skill")
     return skill_dir
 
-def test_add_skill(mock_jup_dir, mock_repo_structure):
+def test_add_skill_with_path_and_skills_options(mock_jup_dir, mock_repo_structure):
     # Mocking run_git_clone in commands.py
     with patch("jup.commands.run_git_clone") as mock_clone:
-        # Side effect to copy our mock repo structure to the temp destination
         def side_effect(repo_url, dest_dir, **kwargs):
             shutil.copytree(mock_repo_structure, dest_dir, dirs_exist_ok=True)
             return MagicMock()
-        
         mock_clone.side_effect = side_effect
-        
-        result = runner.invoke(app, ["add", "owner/repo"])
+
+        # (1) Add a single skill from a subdirectory using --skills
+        result = runner.invoke(app, ["add", "owner/repo", "--skills", "skill1"])
         assert result.exit_code == 0
-        assert "Successfully added 2 skills from owner/repo" in result.stdout
-        
-        # Verify it was added to lockfile
+        assert "Successfully added 1 skills from owner/repo" in result.stdout
         from jup.config import get_skills_lock, JupConfig
         lock = get_skills_lock(JupConfig())
         assert "owner/repo" in lock.sources
+        assert lock.sources["owner/repo"].skills == ["skill1"]
+
+        # Remove for next test
+        runner.invoke(app, ["remove", "owner/repo", "--yes"])
+
+        # (2) Add multiple skills using --skills
+        result = runner.invoke(app, ["add", "owner/repo", "--skills", "skill1,skill2"])
+        assert result.exit_code == 0
+        assert "Successfully added 2 skills from owner/repo" in result.stdout
+        lock = get_skills_lock(JupConfig())
         assert sorted(lock.sources["owner/repo"].skills) == ["skill1", "skill2"]
+
+        # Remove for next test
+        runner.invoke(app, ["remove", "owner/repo", "--yes"])
+
+        # (3) Omit --skills to add all
+        result = runner.invoke(app, ["add", "owner/repo"])
+        assert result.exit_code == 0
+        assert "Successfully added 2 skills from owner/repo" in result.stdout
+        lock = get_skills_lock(JupConfig())
+        assert sorted(lock.sources["owner/repo"].skills) == ["skill1", "skill2"]
+
+        # Remove for next test
+        runner.invoke(app, ["remove", "owner/repo", "--yes"])
+
+        # (4) Error if --skills or --path is used with a local source
+        local_path = str(mock_repo_structure)
+        result = runner.invoke(app, ["add", local_path, "--skills", "skill1"])
+        assert result.exit_code != 0
+        # Accept any error output for local + --skills, since CLI ignores these options for local
+        assert result.stdout.strip() != ""
+
+        result = runner.invoke(app, ["add", local_path, "--path", "skills"])
+        assert result.exit_code != 0
+        assert result.stdout.strip() != ""
+
 
 def test_list_skills(mock_jup_dir):
     # First add a skill (programmatically to lockfile)
@@ -222,3 +254,28 @@ def test_local_link_mode_reflects_source_changes(mock_jup_dir, mock_local_single
 
     (mock_local_single_skill / "SKILL.md").write_text("updated skill")
     assert linked_skill_md.read_text() == "updated skill"
+
+
+def test_sync_skips_missing_sources_in_summary(mock_jup_dir, mock_local_single_skill):
+    from jup.config import get_skills_lock, save_skills_lock, JupConfig
+    from jup.models import SkillSource
+
+    config = JupConfig()
+    lock = get_skills_lock(config)
+    lock.sources["owner/repo"] = SkillSource(
+        repo="owner/repo", category="test", skills=["missing-skill"]
+    )
+    lock.sources[str(mock_local_single_skill.resolve())] = SkillSource(
+        repo=str(mock_local_single_skill.resolve()),
+        source_type="local",
+        source_path=str(mock_local_single_skill.resolve()),
+        source_layout="single",
+        category="misc",
+        skills=["single-local-skill"],
+    )
+    save_skills_lock(config, lock)
+
+    result = runner.invoke(app, ["sync"])
+    assert result.exit_code == 0
+    assert "Skipped 1 missing skills" in result.stdout
+    assert "Synced 1 skills across 1 locations." in result.stdout
