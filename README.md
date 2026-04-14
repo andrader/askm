@@ -160,4 +160,6 @@ The main configuration values are:
 
 ## Contributing 🤝
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, workflow, and publishing details.
+Contributions are welcome. We use standard tools like `uv`, `ruff`, `ty`, `just`, and `pre-commit`. 
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development setup, workflow, and publishing details.

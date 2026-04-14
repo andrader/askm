@@ -17,11 +17,14 @@
 
 **ALWAYS** use `uv run ...` instead of `python -m ...` to run commands in the repo, as `uv` ensures the correct environment and dependencies are used.
 
-### Build and Test
-- **Environment Setup:** `uv sync` followed by `uv pip install -e .`.
-- **Testing:** Run the full suite with `uv run pytest`. Unit, integration, and E2E tests are available in `tests/`.
-- **Formatting:** Use `uv run ruff check .` and `uv run ruff format .` for linting and formatting.
-- **Publishing:** Distributions are built with `uv build` and published with `uv publish`.
+### Build, Test, and Tooling
+- **Environment Setup:** `uv sync` followed by `uv pip install -e .` and `uv run pre-commit install`. See [CONTRIBUTING.md](CONTRIBUTING.md) for full setup.
+- **Task Runner:** We use `just`. Use `just qa` to run linting, type checking, and tests.
+- **Testing:** Run the full suite with `just test`.
+- **Formatting & Linting:** Handled by `ruff` (`just format` and `just lint`).
+- **Type Checking:** Handled by `ty` (`just typecheck`).
+- **Committing:** Use `uv run cz commit` for conventional commits.
+- **Publishing:** Automated via GitHub Actions using `python-semantic-release`.
 
 ## Development Conventions
 
