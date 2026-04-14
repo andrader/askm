@@ -9,13 +9,14 @@ Both `jup` and `npx skills` are CLI tools designed to manage and install Open Ag
 | **Language / Runtime** | Python (via `uv` or `pip`) | Node.js (via `npx`) |
 | **State Management** | Central lockfile (`~/.jup/skills-lock.json`) | Global or per-project installation |
 | **Multi-Agent Sync** | **Yes.** Symlinks/copies from a central cache to all configured agents via `jup sync` | **Yes.** Via `-a` flags during install (e.g., `-a gemini-cli -a cursor`) |
-| **Search / Registry** | Direct repo/local path only | Built-in search (`npx skills find`) backed by `skills.sh` |
+| **Search / Registry** | **Yes.** Built-in search (`jup find`) backed by `skills.sh` | **Yes.** Built-in search (`npx skills find`) backed by `skills.sh` |
 | **Local Development** | Excellent. Symlinks local directories directly into agent folders | Good. Includes an `init` command for scaffolding |
 | **Updates** | `jup sync --update` | `npx skills update` / `npx skills check` |
 
 ## Command Reference
 
 ### `jup`
+*   `jup find <query>`: Interactively searches for available skills in the `skills.sh` registry.
 *   `jup add <repo|path>`: Installs a skill from a GitHub repo or a local directory. Supports `--path` and `--skills` for sub-selection.
 *   `jup sync`: Syncs managed skills from the central storage into the configured agent directories (e.g., `.gemini/skills`, `.claude/skills`).
 *   `jup list`: Shows all installed skills, locations, and last update times.
@@ -36,10 +37,10 @@ Both `jup` and `npx skills` are CLI tools designed to manage and install Open Ag
 **Pros:**
 *   **Centralized Multi-Agent Sync:** You configure your target agents once (`jup config set agents ...`), and every `jup sync` ensures all agents have exactly the same skills via lightweight symlinks.
 *   **Local-First Design:** It natively supports adding local skill directories (`jup add ./my-skills`). Because it uses symlinks by default, you can edit the source skill locally and the changes are immediately available to your agents without needing to re-run an update.
+*   **Interactive Search Registry:** Deep integration with `skills.sh` allows you to easily discover and install community skills via `jup find`.
 *   **Python Ecosystem:** Ideal for developers already using `uv` or Python toolchains.
 
 **Cons:**
-*   **No Central Registry:** You must know the exact GitHub repository (`owner/repo`) or local path to install a skill. There is no interactive `find` command.
 *   **Requires Python:** Adds a dependency for users strictly in the Node.js ecosystem.
 
 ### `npx skills`
