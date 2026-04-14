@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.6.0 (2026-04-14)
+
+### Features
+
+- **agent**: Add custom agent provider management
+  ([`8cb3526`](https://github.com/andrader/jup/commit/8cb3526e6dad3935211ae5a9072cf59a62e43e16))
+
+
 ## v0.5.0 (2026-04-14)
 
 ### Documentation
