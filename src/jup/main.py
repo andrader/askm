@@ -1,6 +1,6 @@
-from enum import Enum
-
 import typer
+from importlib.metadata import version as get_version
+from enum import Enum
 from rich import print
 from .config import get_config, save_config
 from .models import SyncMode, ScopeType, JupConfig
@@ -13,11 +13,57 @@ class VerboseState:
 verbose_state = VerboseState()
 
 
+BANNER = r"""
+[cyan]   _             [/cyan]
+[cyan]  ([/cyan][magenta]●[/magenta][cyan])_   _ _ __  [/cyan]
+[cyan]  | | | | | '_ \ [/cyan]
+[cyan]  | | |_| | |_) |[/cyan]
+[cyan] _/ |\__,_| .__/ [/cyan]
+[cyan]|__/      |_|    [/cyan]
+"""
+
+
+def version_callback(value: bool):
+    if value:
+        print(BANNER)
+        try:
+            v = get_version("jup")
+        except Exception:
+            v = "unknown"
+        print(f"[bold]jup[/bold] version: [magenta]{v}[/magenta]")
+        raise typer.Exit()
+
+
 app = typer.Typer(
     help="jup - Agent Skills Manager",
-    no_args_is_help=True,
+    no_args_is_help=False,
+    add_completion=False,
+    rich_markup_mode="rich",
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
 )
+
+
+@app.callback(invoke_without_command=True)
+def main_callback(
+    ctx: typer.Context,
+    version: bool = typer.Option(
+        None,
+        "--version",
+        "-v",
+        callback=version_callback,
+        is_eager=True,
+        help="Show version and exit",
+    ),
+):
+    """jup - Agent Skills Manager"""
+    if ctx.invoked_subcommand is None:
+        print(BANNER)
+        print("[bold]jup - Agent Skills Manager[/bold]")
+        print()
+        print(ctx.get_help())
+        raise typer.Exit()
+
+
 config_app = typer.Typer(help="Manage configuration settings", no_args_is_help=True)
 app.add_typer(config_app, name="config")
 
