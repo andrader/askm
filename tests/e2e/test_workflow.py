@@ -1,23 +1,23 @@
 import pytest
 import shutil
-from pathlib import Path
 from typer.testing import CliRunner
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from jup.main import app
 from jup.models import AgentConfig
 
 runner = CliRunner()
 
+
 @pytest.fixture
 def mock_env(tmp_path):
     jup_dir = tmp_path / ".jup"
     jup_dir.mkdir()
-    
+
     mock_agents = {
         "default": AgentConfig(
             name="default",
             global_location=str(tmp_path / "global"),
-            local_location=str(tmp_path / "local")
+            local_location=str(tmp_path / "local"),
         )
     }
 
@@ -34,10 +34,13 @@ def mock_env(tmp_path):
             with patch("jup.config.DEFAULT_AGENTS", mock_agents):
                 with patch("jup.models.DEFAULT_AGENTS", mock_agents):
                     with patch("jup.commands.run_git_clone") as mock_clone:
+
                         def side_effect(repo_url, dest_dir, **kwargs):
                             shutil.copytree(repo_dir, dest_dir, dirs_exist_ok=True)
+
                         mock_clone.side_effect = side_effect
                         yield jup_dir
+
 
 def test_full_workflow(mock_env):
     # 1. Config set
@@ -54,9 +57,10 @@ def test_full_workflow(mock_env):
     result = runner.invoke(app, ["sync"])
     assert result.exit_code == 0
     assert "Synced 1 skills" in result.stdout
-    
+
     # Verify copy (since we set sync-mode to copy)
     from jup.config import get_scope_dir, JupConfig
+
     scope_dir = get_scope_dir(JupConfig())
     target_skill_dir = scope_dir / "skills" / "useful-skill"
     assert target_skill_dir.exists()
@@ -72,7 +76,7 @@ def test_full_workflow(mock_env):
     result = runner.invoke(app, ["remove", "useful-skill", "--yes"])
     assert result.exit_code == 0
     assert "Removed skill 'useful-skill'" in result.stdout
-    
+
     # After removing the only skill, the repo should be gone from lockfile
     result = runner.invoke(app, ["list"])
     assert "No skills installed" in result.stdout
@@ -95,6 +99,7 @@ def test_local_directory_workflow(mock_env):
     assert "Synced 2 skills" in result.stdout
 
     from jup.config import get_scope_dir, JupConfig
+
     scope_dir = get_scope_dir(JupConfig())
     linked_skill_dir = scope_dir / "skills" / "skill-a"
     assert linked_skill_dir.exists()

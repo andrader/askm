@@ -61,10 +61,14 @@ def add_skill(
         "misc", "--category", help="Category for the skill (e.g., productivity/custom)"
     ),
     path: str = typer.Option(
-        "skills/", "--path", help="[GitHub only] Path to skills directory in the repo (default: skills/). If not found, .claude/skills/ is tried as a fallback."
+        "skills/",
+        "--path",
+        help="[GitHub only] Path to skills directory in the repo (default: skills/). If not found, .claude/skills/ is tried as a fallback.",
     ),
     skills: str = typer.Option(
-        None, "--skills", help="[GitHub only] Comma-separated list of skill names to add (default: all)"
+        None,
+        "--skills",
+        help="[GitHub only] Comma-separated list of skill names to add (default: all)",
     ),
     verbose: bool = False,
 ):
@@ -136,15 +140,23 @@ def add_skill(
                 if fallback_skills_dir.exists() and fallback_skills_dir.is_dir():
                     skills_dir = fallback_skills_dir
                     if verbose_state.verbose:
-                        print(f"[yellow]Falling back to .claude/skills/ in {repo}[/yellow]")
+                        print(
+                            f"[yellow]Falling back to .claude/skills/ in {repo}[/yellow]"
+                        )
                 else:
-                    print(f"[red]No '{path or 'skills/'}' directory found in {repo}, and no fallback .claude/skills/ present.[/red]")
+                    print(
+                        f"[red]No '{path or 'skills/'}' directory found in {repo}, and no fallback .claude/skills/ present.[/red]"
+                    )
                     raise typer.Exit(code=1)
 
             storage_base = get_skills_storage_dir()
             target_dir = storage_base / category / GH_PREFIX / owner / repo_name
 
-            all_skills = [item for item in skills_dir.iterdir() if item.is_dir() and (item / "SKILL.md").exists()]
+            all_skills = [
+                item
+                for item in skills_dir.iterdir()
+                if item.is_dir() and (item / "SKILL.md").exists()
+            ]
 
             if skills:
                 selected = set(s.strip() for s in skills.split(",") if s.strip())
@@ -155,12 +167,12 @@ def add_skill(
             if verbose_state.verbose:
                 print(
                     f"Found {len(found_skills)} skills at [cyan]{rel_home(target_dir)}[/cyan]:\n\t"
-                    + ", ".join(
-                        f"[blue]{skill.name}[/blue]" for skill in found_skills
-                    )
+                    + ", ".join(f"[blue]{skill.name}[/blue]" for skill in found_skills)
                 )
             if not found_skills:
-                print(f"[red]No skills found inside the '{path}' directory matching selection.[/red]")
+                print(
+                    f"[red]No skills found inside the '{path}' directory matching selection.[/red]"
+                )
                 raise typer.Exit(code=1)
 
             if target_dir.exists():
@@ -177,6 +189,7 @@ def add_skill(
     config = get_config()
     lock = get_skills_lock(config)
     from datetime import datetime, timezone
+
     lock.sources[source_key] = SkillSource(
         repo=repo,
         source_type=source_type,
@@ -184,7 +197,7 @@ def add_skill(
         source_layout=source_layout,
         category=category,
         skills=[skill.name for skill in found_skills],
-        last_updated=datetime.now(timezone.utc).isoformat(timespec='seconds')
+        last_updated=datetime.now(timezone.utc).isoformat(timespec="seconds"),
     )
     save_skills_lock(config, lock)
 
@@ -270,10 +283,14 @@ def remove_skill(
                     print(f"Removed skill at [red]{rel_home(skill_path)}[/red]")
         source.skills.remove(skill_to_remove)
         removed_skills.append(skill_to_remove)
-        print(f"🗑️ Removed skill '[yellow]{skill_to_remove}[/yellow]' from {repo_to_remove}")
+        print(
+            f"🗑️ Removed skill '[yellow]{skill_to_remove}[/yellow]' from {repo_to_remove}"
+        )
         if not source.skills:
             del lock.sources[repo_to_remove]
-            print(f"No more skills in [yellow]{repo_to_remove}[/yellow], removed repository reference.")
+            print(
+                f"No more skills in [yellow]{repo_to_remove}[/yellow], removed repository reference."
+            )
     else:
         # Remove all skills from this repo
         for skill in list(source.skills):
@@ -288,10 +305,15 @@ def remove_skill(
                         print(f"Removed skill at [red]{rel_home(skill_path)}[/red]")
             removed_skills.append(skill)
         del lock.sources[repo_to_remove]
-        print(f"🗑️ Removed repository '[yellow]{repo_to_remove}[/yellow]' and all its skills.")
+        print(
+            f"🗑️ Removed repository '[yellow]{repo_to_remove}[/yellow]' and all its skills."
+        )
 
     save_skills_lock(config, lock)
-    print(f"Removed {len(removed_skills)} skills from " + ", ".join([f"[yellow]{rel_home(t)}[/yellow]" for t in targets]))
+    print(
+        f"Removed {len(removed_skills)} skills from "
+        + ", ".join([f"[yellow]{rel_home(t)}[/yellow]" for t in targets])
+    )
     sync_skills(verbose=verbose_state.verbose)
 
 
@@ -337,9 +359,10 @@ def sync_skills(verbose: bool = False):
     missing_skills: list[tuple[str, Path]] = []
 
     from datetime import datetime, timezone
+
     for source_key, source in lock.sources.items():
         # Update last_updated on sync (update)
-        source.last_updated = datetime.now(timezone.utc).isoformat(timespec='seconds')
+        source.last_updated = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
         source_type = source.source_type or GITHUB_SOURCE_TYPE
         storage_dir: Path | None = None
@@ -365,9 +388,7 @@ def sync_skills(verbose: bool = False):
         for skill in source.skills:
             if source_type == LOCAL_SOURCE_TYPE:
                 if local_source_root is None:
-                    print(
-                        f"⚠️  Invalid local source path for [red]{source_key}[/red]."
-                    )
+                    print(f"⚠️  Invalid local source path for [red]{source_key}[/red].")
                     continue
                 if source.source_layout == "single":
                     skill_src_dir = local_source_root
@@ -375,9 +396,7 @@ def sync_skills(verbose: bool = False):
                     skill_src_dir = local_source_root / skill
             else:
                 if storage_dir is None:
-                    print(
-                        f"⚠️  Invalid storage directory for [red]{source_key}[/red]."
-                    )
+                    print(f"⚠️  Invalid storage directory for [red]{source_key}[/red].")
                     continue
                 skill_src_dir = storage_dir / skill
 
@@ -399,34 +418,44 @@ def sync_skills(verbose: bool = False):
                     if target_skill_dir.is_symlink():
                         target_skill_dir.unlink()
                         if verbose_state.verbose:
-                            print(f"Removed old symlink [magenta]{rel_home(target_skill_dir)}[/magenta]")
+                            print(
+                                f"Removed old symlink [magenta]{rel_home(target_skill_dir)}[/magenta]"
+                            )
                     elif target_skill_dir.is_dir():
                         shutil.rmtree(target_skill_dir)
                         if verbose_state.verbose:
-                            print(f"Removed old directory [magenta]{rel_home(target_skill_dir)}[/magenta]")
+                            print(
+                                f"Removed old directory [magenta]{rel_home(target_skill_dir)}[/magenta]"
+                            )
                     else:
                         target_skill_dir.unlink()
                         if verbose_state.verbose:
-                            print(f"Removed old file [magenta]{rel_home(target_skill_dir)}[/magenta]")
+                            print(
+                                f"Removed old file [magenta]{rel_home(target_skill_dir)}[/magenta]"
+                            )
 
                 if config.sync_mode == SyncMode.LINK:
                     target_skill_dir.symlink_to(skill_src_dir, target_is_directory=True)
                     total_links += 1
                     if verbose_state.verbose:
-                        print(f"🔗 Linked [cyan]{rel_home(target_skill_dir)}[/cyan] -> [cyan]{rel_home(skill_src_dir)}[/cyan]")
+                        print(
+                            f"🔗 Linked [cyan]{rel_home(target_skill_dir)}[/cyan] -> [cyan]{rel_home(skill_src_dir)}[/cyan]"
+                        )
                 else:
                     shutil.copytree(skill_src_dir, target_skill_dir)
                     if verbose_state.verbose:
-                        print(f"📁 Copied [cyan]{rel_home(skill_src_dir)}[/cyan] -> [cyan]{rel_home(target_skill_dir)}[/cyan]")
+                        print(
+                            f"📁 Copied [cyan]{rel_home(skill_src_dir)}[/cyan] -> [cyan]{rel_home(target_skill_dir)}[/cyan]"
+                        )
 
     if missing_skills and not verbose_state.verbose:
-        print(
-            f"⚠️  Skipped {len(missing_skills)} missing skills from the lockfile."
-        )
+        print(f"⚠️  Skipped {len(missing_skills)} missing skills from the lockfile.")
 
     print(f"🔄 Synced {synced_skills} skills across {len(targets)} locations.")
     if verbose_state.verbose:
-        print(f"Added {total_links} symlinks (sync_mode=[cyan]{str(config.sync_mode)}[/cyan])")
+        print(
+            f"Added {total_links} symlinks (sync_mode=[cyan]{str(config.sync_mode)}[/cyan])"
+        )
 
 
 @app.command("list")
@@ -454,7 +483,11 @@ def list_skills():
     for agent_name in config.agents:
         if agent_name in DEFAULT_AGENTS:
             agent = DEFAULT_AGENTS[agent_name]
-            loc = agent.local_location if config.scope == "local" else agent.global_location
+            loc = (
+                agent.local_location
+                if config.scope == "local"
+                else agent.global_location
+            )
             agent_dirs[agent_name] = loc
         else:
             agent_dirs[agent_name] = "(unknown)"
@@ -470,7 +503,9 @@ def list_skills():
             local_ref = source.source_path or source_key
             repo_display = Text(rel_home(Path(local_ref).expanduser().resolve()))
         else:
-            repo_display = Text(repo_ref, style=f"cyan link https://github.com/{repo_ref}")
+            repo_display = Text(
+                repo_ref, style=f"cyan link https://github.com/{repo_ref}"
+            )
 
         last_updated = source.last_updated or "-"
         for skill in source.skills:
@@ -487,5 +522,11 @@ def list_skills():
             # Only show unique locations
             locations_str = "\n".join(sorted(set(locations)))
             agents_str = ", ".join(agent_list) if agent_list else "none"
-            table.add_row(repo_display, str(skill), str(locations_str), str(agents_str), str(last_updated))
+            table.add_row(
+                repo_display,
+                str(skill),
+                str(locations_str),
+                str(agents_str),
+                str(last_updated),
+            )
     print(table)
