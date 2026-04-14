@@ -14,9 +14,16 @@ class ScopeType(StrEnum):
     LOCAL = "local"
 
 
+class AgentConfig(BaseModel):
+    name: str
+    global_location: str
+    local_location: str
+
+
 class JupConfig(BaseModel):
     scope: ScopeType = Field(default=ScopeType.GLOBAL)
     agents: List[str] = Field(default_factory=list)
+    custom_agents: Dict[str, AgentConfig] = Field(default_factory=dict)
     sync_mode: SyncMode = Field(default=SyncMode.LINK, alias="sync-mode")
 
     model_config = {"populate_by_name": True}
@@ -36,12 +43,6 @@ class SkillSource(BaseModel):
 class SkillsLock(BaseModel):
     version: str = Field(default="0.0.0")
     sources: Dict[str, SkillSource] = Field(default_factory=dict)
-
-
-class AgentConfig(BaseModel):
-    name: str
-    global_location: str
-    local_location: str
 
 
 # Pre-defined registry of agents based on known paths, extensible later.

@@ -10,6 +10,7 @@ import typer
 from rich import print
 
 from .config import (
+    get_all_agents,
     get_config,
     get_scope_dir,
     get_skills_lock,
@@ -17,7 +18,7 @@ from .config import (
     save_skills_lock,
 )
 from .main import app, verbose_state
-from .models import DEFAULT_AGENTS, SkillSource, SyncMode
+from .models import SkillSource, SyncMode
 
 GH_PREFIX = "gh"  # Used to namespace GitHub sources in storage
 LOCAL_SOURCE_TYPE = "local"
@@ -272,9 +273,10 @@ def remove_skill(
     scope_dir = get_scope_dir(config)
     default_skills_dir = scope_dir / "skills"
     targets.append(default_skills_dir)
+    all_agents = get_all_agents(config)
     for agent_name in config.agents:
-        if agent_name in DEFAULT_AGENTS:
-            agent = DEFAULT_AGENTS[agent_name]
+        if agent_name in all_agents:
+            agent = all_agents[agent_name]
             loc = (
                 agent.local_location
                 if config.scope == "local"
@@ -346,9 +348,10 @@ def sync_skills(verbose: bool = False):
     targets.append(default_skills_dir)
 
     # Agent directories
+    all_agents = get_all_agents(config)
     for agent_name in config.agents:
-        if agent_name in DEFAULT_AGENTS:
-            agent = DEFAULT_AGENTS[agent_name]
+        if agent_name in all_agents:
+            agent = all_agents[agent_name]
             # Use global/local location based on scope
             loc = (
                 agent.local_location
@@ -493,9 +496,10 @@ def list_skills():
 
     # Determine all agent directories
     agent_dirs = {}
+    all_agents = get_all_agents(config)
     for agent_name in config.agents:
-        if agent_name in DEFAULT_AGENTS:
-            agent = DEFAULT_AGENTS[agent_name]
+        if agent_name in all_agents:
+            agent = all_agents[agent_name]
             loc = (
                 agent.local_location
                 if config.scope == "local"

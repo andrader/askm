@@ -187,6 +187,30 @@ The main configuration values are:
 - `agents`: a comma-separated list of agent names
 - `sync-mode`: `link` or `copy`
 
+### 7. Manage custom agent providers 🤖
+
+You can add your own agent providers if they use a standard `skills/` directory structure:
+
+```bash
+# List all providers
+jup agent list
+
+# Add a new custom provider
+jup agent add myagent --global-location ~/.myagent/skills --local-location ./.myagent/skills
+
+# Edit an existing custom provider
+jup agent edit myagent --local-location ./new-path/skills
+
+# Remove a custom provider
+jup agent remove myagent
+```
+
+Once a custom agent is added, you can activate it in your configuration:
+
+```bash
+jup config set agents gemini,myagent
+```
+
 ## Supported Agents 🧩
 
 `jup` includes built-in locations for these agent names:

@@ -1,9 +1,10 @@
 import typer
+from typing import Optional
 from importlib.metadata import version as get_version
 from enum import Enum
 from rich import print
-from .config import get_config, save_config
-from .models import SyncMode, ScopeType, JupConfig
+from .config import get_all_agents, get_config, save_config
+from .models import DEFAULT_AGENTS, AgentConfig, JupConfig, ScopeType, SyncMode
 
 
 class VerboseState:
@@ -161,6 +162,108 @@ def config_unset(key: str = typer.Argument(..., help="Config key to unset")):
         raise typer.Exit(code=1)
     save_config(config)
     print(f"Unset {key} (reverted to default)")
+
+
+agent_app = typer.Typer(help="Manage agent providers", no_args_is_help=True)
+app.add_typer(agent_app, name="agent")
+
+
+@agent_app.command("list")
+def agent_list():
+    """List all available agent providers."""
+    config = get_config()
+    all_agents = get_all_agents(config)
+    from rich.table import Table
+
+    table = Table(title="Agent Providers")
+    table.add_column("Name", style="magenta")
+    table.add_column("Global Location", style="cyan")
+    table.add_column("Local Location", style="cyan")
+    table.add_column("Type", style="yellow")
+
+    for name, agent in all_agents.items():
+        agent_type = "default" if name in DEFAULT_AGENTS else "custom"
+        table.add_row(name, agent.global_location, agent.local_location, agent_type)
+    print(table)
+
+
+@agent_app.command("add")
+def agent_add(
+    name: str = typer.Argument(..., help="Agent name"),
+    global_location: str = typer.Option(
+        ...,
+        "--global-location",
+        "-g",
+        help="Global skills directory",
+        prompt="Global skills directory (e.g. ~/.gemini/skills)",
+    ),
+    local_location: str = typer.Option(
+        ...,
+        "--local-location",
+        "-l",
+        help="Local skills directory",
+        prompt="Local skills directory (e.g. ./.gemini/skills)",
+    ),
+):
+    """Add a new custom agent provider."""
+    config = get_config()
+    all_agents = get_all_agents(config)
+    if name in all_agents:
+        print(f"[red]Agent '{name}' already exists.[/red]")
+        raise typer.Exit(code=1)
+
+    agent = AgentConfig(
+        name=name, global_location=global_location, local_location=local_location
+    )
+    config.custom_agents[name] = agent
+    save_config(config)
+    print(f"Added custom agent provider: [magenta]{name}[/magenta]")
+
+
+@agent_app.command("edit")
+def agent_edit(
+    name: str = typer.Argument(..., help="Agent name"),
+    global_location: Optional[str] = typer.Option(
+        None, "--global-location", "-g", help="Global skills directory"
+    ),
+    local_location: Optional[str] = typer.Option(
+        None, "--local-location", "-l", help="Local skills directory"
+    ),
+):
+    """Edit an existing custom agent provider."""
+    config = get_config()
+    if name in DEFAULT_AGENTS:
+        print(f"[red]Cannot edit default agent '{name}'.[/red]")
+        raise typer.Exit(code=1)
+    if name not in config.custom_agents:
+        print(f"[red]Custom agent '{name}' does not exist.[/red]")
+        raise typer.Exit(code=1)
+
+    agent = config.custom_agents[name]
+    if global_location is not None:
+        agent.global_location = global_location
+    if local_location is not None:
+        agent.local_location = local_location
+
+    config.custom_agents[name] = agent
+    save_config(config)
+    print(f"Updated custom agent provider: [magenta]{name}[/magenta]")
+
+
+@agent_app.command("remove")
+def agent_remove(name: str = typer.Argument(..., help="Agent name")):
+    """Remove a custom agent provider."""
+    config = get_config()
+    if name in DEFAULT_AGENTS:
+        print(f"[red]Cannot remove default agent '{name}'.[/red]")
+        raise typer.Exit(code=1)
+    if name not in config.custom_agents:
+        print(f"[red]Custom agent '{name}' does not exist.[/red]")
+        raise typer.Exit(code=1)
+
+    del config.custom_agents[name]
+    save_config(config)
+    print(f"Removed custom agent provider: [magenta]{name}[/magenta]")
 
 
 # Import command registrations after app and shared state are defined.
