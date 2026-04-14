@@ -1,6 +1,9 @@
+import json
 import shutil
 import subprocess
 import tempfile
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 import typer
@@ -136,27 +139,37 @@ def add_skill(
             skills_dir = temp_path / path if path else temp_path / "skills"
             fallback_skills_dir = temp_path / ".claude" / "skills"
             if not skills_dir.exists() or not skills_dir.is_dir():
-                # Try fallback
-                if fallback_skills_dir.exists() and fallback_skills_dir.is_dir():
+                # Try fallback only if path was not explicitly provided or was default 'skills/'
+                if (
+                    (not path or path == "skills/")
+                    and fallback_skills_dir.exists()
+                    and fallback_skills_dir.is_dir()
+                ):
                     skills_dir = fallback_skills_dir
                     if verbose_state.verbose:
                         print(
                             f"[yellow]Falling back to .claude/skills/ in {repo}[/yellow]"
                         )
                 else:
-                    print(
-                        f"[red]No '{path or 'skills/'}' directory found in {repo}, and no fallback .claude/skills/ present.[/red]"
-                    )
-                    raise typer.Exit(code=1)
+                    # If the directory doesn't exist, it might be that the repo root is the skill dir
+                    # but only if path was not explicitly set or if it was set to something that doesn't exist.
+                    # Actually, if the path was explicitly set, we should check if it's a skill dir.
+                    pass
 
             storage_base = get_skills_storage_dir()
             target_dir = storage_base / category / GH_PREFIX / owner / repo_name
 
-            all_skills = [
-                item
-                for item in skills_dir.iterdir()
-                if item.is_dir() and (item / "SKILL.md").exists()
-            ]
+            # Check if skills_dir itself is a skill (has SKILL.md)
+            if (skills_dir / "SKILL.md").exists():
+                all_skills = [skills_dir]
+                source_layout = "single"
+            else:
+                source_layout = "collection"
+                all_skills = [
+                    item
+                    for item in skills_dir.iterdir()
+                    if item.is_dir() and (item / "SKILL.md").exists()
+                ]
 
             if skills:
                 selected = set(s.strip() for s in skills.split(",") if s.strip())
@@ -530,3 +543,93 @@ def list_skills():
                 str(last_updated),
             )
     print(table)
+
+
+@app.command("find")
+def find_skills(
+    query: str = typer.Argument(..., help="Search query for the skills registry"),
+    verbose: bool = False,
+):
+    """Search for skills in the skills.sh registry and install them interactively."""
+    from rich.prompt import IntPrompt
+    from rich.table import Table
+
+    verbose_state.verbose = verbose
+    api_url = f"https://skills.sh/api/search?q={urllib.parse.quote(query)}"
+
+    if verbose_state.verbose:
+        print(f"Searching registry: [cyan]{api_url}[/cyan]")
+
+    try:
+        with urllib.request.urlopen(api_url) as response:
+            data = json.loads(response.read().decode())
+    except Exception as e:
+        print(f"[red]Failed to query the registry: {e}[/red]")
+        raise typer.Exit(code=1)
+
+    skills = data.get("skills", [])
+    if not skills:
+        print(f"No skills found for '[yellow]{query}[/yellow]'.")
+        return
+
+    table = Table(title=f"Search Results for '{query}'")
+    table.add_column("#", style="dim", width=4)
+    table.add_column("Skill / Name", style="magenta")
+    table.add_column("Source / Repo", style="cyan")
+    table.add_column("Installs", style="green", justify="right")
+
+    for i, skill in enumerate(skills, 1):
+        name = skill.get("name", skill.get("skillId", "Unknown"))
+        # Example id: "github/owner/repo"
+        source_id = skill.get("id", "")
+        repo = (
+            source_id.replace("github/", "")
+            if source_id.startswith("github/")
+            else source_id
+        )
+        installs = skill.get("installs", 0)
+        table.add_row(str(i), name, repo, f"{installs:,}")
+
+    print(table)
+
+    selection = IntPrompt.ask(
+        "Enter the number of the skill to install (or 0 to cancel)",
+        default=0,
+    )
+
+    if selection == 0:
+        print("Cancelled.")
+        return
+
+    if 1 <= selection <= len(skills):
+        selected_skill = skills[selection - 1]
+        source_id = selected_skill.get("id", "")
+        # Remove github/ prefix
+        full_path = (
+            source_id.replace("github/", "")
+            if source_id.startswith("github/")
+            else source_id
+        )
+
+        # Split into repo (owner/repo) and internal path
+        parts = full_path.split("/")
+        if len(parts) >= 2:
+            repo = f"{parts[0]}/{parts[1]}"
+            # The internal path is everything after the second part
+            internal_path = "/".join(parts[2:]) if len(parts) > 2 else ""
+        else:
+            repo = full_path
+            internal_path = ""
+
+        print(
+            f"Installing [magenta]{selected_skill.get('name')}[/magenta] from [cyan]{repo}[/cyan]..."
+        )
+        if internal_path:
+            if verbose_state.verbose:
+                print(f"Using internal path: [cyan]{internal_path}[/cyan]")
+            add_skill(repo=repo, path=internal_path, verbose=verbose)
+        else:
+            add_skill(repo=repo, verbose=verbose)
+    else:
+        print("[red]Invalid selection.[/red]")
+        raise typer.Exit(code=1)
