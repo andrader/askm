@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.7.0 (2026-04-14)
+
+### Features
+
+- **cli**: Add interactive TUI for find and new show command
+  ([`67ca644`](https://github.com/andrader/jup/commit/67ca644e52ec3f4a629d10092c448d6cec4d41e6))
+
+
 ## v0.6.0 (2026-04-14)
 
 ### Features
