@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    concurrency: release
+    permissions:
+      id-token: write  # Mandatory for trusted publishing
+      contents: write  # Mandatory for semantic-release to create tags/releases
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Python Semantic Release
+        id: release
+        uses: python-semantic-release/python-semantic-release@v9.16.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install uv
+        if: steps.release.outputs.released == 'true'
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Publish to PyPI
+        if: steps.release.outputs.released == 'true'
+        run: |
+          uv build
+          uv publish
