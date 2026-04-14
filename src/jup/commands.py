@@ -2,19 +2,19 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+
 import typer
 from rich import print
 
-from .main import app, verbose_state
 from .config import (
     get_config,
-    get_skills_lock,
-    save_skills_lock,
-    get_skills_storage_dir,
     get_scope_dir,
+    get_skills_lock,
+    get_skills_storage_dir,
+    save_skills_lock,
 )
-from .models import SkillSource, SyncMode, DEFAULT_AGENTS
-
+from .main import app, verbose_state
+from .models import DEFAULT_AGENTS, SkillSource, SyncMode
 
 GH_PREFIX = "gh"  # Used to namespace GitHub sources in storage
 LOCAL_SOURCE_TYPE = "local"
@@ -176,6 +176,7 @@ def add_skill(
 
     config = get_config()
     lock = get_skills_lock(config)
+    from datetime import datetime, timezone
     lock.sources[source_key] = SkillSource(
         repo=repo,
         source_type=source_type,
@@ -183,6 +184,7 @@ def add_skill(
         source_layout=source_layout,
         category=category,
         skills=[skill.name for skill in found_skills],
+        last_updated=datetime.now(timezone.utc).isoformat(timespec='seconds')
     )
     save_skills_lock(config, lock)
 
@@ -334,10 +336,14 @@ def sync_skills(verbose: bool = False):
     synced_skills = 0
     missing_skills: list[tuple[str, Path]] = []
 
+    from datetime import datetime, timezone
     for source_key, source in lock.sources.items():
+        # Update last_updated on sync (update)
+        source.last_updated = datetime.now(timezone.utc).isoformat(timespec='seconds')
+
         source_type = source.source_type or GITHUB_SOURCE_TYPE
-        storage_dir = None
-        local_source_root = None
+        storage_dir: Path | None = None
+        local_source_root: Path | None = None
 
         if source_type == LOCAL_SOURCE_TYPE:
             local_path_str = source.source_path or source_key
@@ -358,11 +364,21 @@ def sync_skills(verbose: bool = False):
 
         for skill in source.skills:
             if source_type == LOCAL_SOURCE_TYPE:
+                if local_source_root is None:
+                    print(
+                        f"⚠️  Invalid local source path for [red]{source_key}[/red]."
+                    )
+                    continue
                 if source.source_layout == "single":
                     skill_src_dir = local_source_root
                 else:
                     skill_src_dir = local_source_root / skill
             else:
+                if storage_dir is None:
+                    print(
+                        f"⚠️  Invalid storage directory for [red]{source_key}[/red]."
+                    )
+                    continue
                 skill_src_dir = storage_dir / skill
 
             if not skill_src_dir.exists():
@@ -417,6 +433,8 @@ def sync_skills(verbose: bool = False):
 def list_skills():
     """List installed skills as a table."""
     from rich.table import Table
+    from rich.text import Text
+
     config = get_config()
     lock = get_skills_lock(config)
 
@@ -425,10 +443,11 @@ def list_skills():
         return
 
     table = Table(title="Installed Skills")
-    table.add_column("Repo", style="cyan", no_wrap=True)
-    table.add_column("Skill Name", style="magenta")
+    table.add_column("Repo", style="cyan")
+    table.add_column("Skill Name", style="magenta", no_wrap=True)
     table.add_column("Location", style="green")
     table.add_column("Agents", style="yellow")
+    table.add_column("Last Updated", style="white")
 
     # Determine all agent directories
     agent_dirs = {}
@@ -443,17 +462,30 @@ def list_skills():
     # Default location
     default_loc = str((get_scope_dir(config) / "skills").expanduser().resolve())
 
-    for repo, source in lock.sources.items():
+    for source_key, source in lock.sources.items():
+        source_type = source.source_type or GITHUB_SOURCE_TYPE
+        repo_ref = source.repo or source_key
+
+        if source_type == LOCAL_SOURCE_TYPE:
+            local_ref = source.source_path or source_key
+            repo_display = Text(rel_home(Path(local_ref).expanduser().resolve()))
+        else:
+            repo_display = Text(repo_ref, style=f"cyan link https://github.com/{repo_ref}")
+
+        last_updated = source.last_updated or "-"
         for skill in source.skills:
             # Default location
-            locations = [default_loc]
+            locations = [rel_home(Path(default_loc).expanduser().resolve())]
             # Agent locations
             agent_list = []
             for agent_name, loc in agent_dirs.items():
                 agent_list.append(agent_name)
-                locations.append(str(Path(loc).expanduser().resolve()))
+                if loc == "(unknown)":
+                    locations.append(loc)
+                else:
+                    locations.append(rel_home(Path(loc).expanduser().resolve()))
             # Only show unique locations
             locations_str = "\n".join(sorted(set(locations)))
             agents_str = ", ".join(agent_list) if agent_list else "none"
-            table.add_row(repo, skill, locations_str, agents_str)
+            table.add_row(repo_display, str(skill), str(locations_str), str(agents_str), str(last_updated))
     print(table)

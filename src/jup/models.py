@@ -1,6 +1,7 @@
 from enum import StrEnum
 from typing import List, Dict, Optional
 from pydantic import BaseModel, Field
+from datetime import datetime
 
 
 class SyncMode(StrEnum):
@@ -28,6 +29,8 @@ class SkillSource(BaseModel):
     source_layout: Optional[str] = None
     category: Optional[str] = None
     skills: List[str] = Field(default_factory=list)
+    last_updated: Optional[str] = None  # ISO format datetime
+    last_install_date: Optional[datetime] = None
 
 
 class SkillsLock(BaseModel):
