@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.8.0 (2026-04-15)
+
+### Documentation
+
+- Clarify skill path structure and update project guidelines
+  ([`008bb7b`](https://github.com/andrader/jup/commit/008bb7b32b2618584b7cd74fe0228ebd8e008135))
+
+### Features
+
+- Cleanup managed skills from inactive agent directories in sync
+  ([`811bc23`](https://github.com/andrader/jup/commit/811bc2356bec12cc9b0ceb9a96ed2726f8591b15))
+
+
 ## v0.7.1 (2026-04-15)
 
 ### Bug Fixes
