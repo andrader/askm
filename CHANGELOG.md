@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.7.1 (2026-04-15)
+
+### Bug Fixes
+
+- **cli**: Remove redundant 'skills/' nesting in skill target paths
+  ([`d8220c5`](https://github.com/andrader/jup/commit/d8220c5231e251e9176ffaef25376361de51b4ee))
+
+
 ## v0.7.0 (2026-04-14)
 
 ### Features
