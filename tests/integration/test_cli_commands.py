@@ -228,7 +228,7 @@ def test_sync_skills(mock_jup_dir, mock_repo_structure):
     from jup.config import get_scope_dir
 
     scope_dir = get_scope_dir(config)
-    target_skill_dir = scope_dir / "skills" / "skill1"
+    target_skill_dir = scope_dir / "skill1"
     assert target_skill_dir.exists()
     assert target_skill_dir.is_symlink()
     assert target_skill_dir.resolve() == skill_dir.resolve()
@@ -249,7 +249,7 @@ def test_add_local_skills_directory(mock_jup_dir, mock_local_skills_collection):
     assert sorted(lock.sources[source_key].skills) == ["local1", "local2"]
 
     scope_dir = get_scope_dir(JupConfig())
-    linked_skill = scope_dir / "skills" / "local1"
+    linked_skill = scope_dir / "local1"
     assert linked_skill.is_symlink()
     assert linked_skill.resolve() == (mock_local_skills_collection / "local1").resolve()
 
@@ -269,7 +269,7 @@ def test_add_local_single_skill_directory(mock_jup_dir, mock_local_single_skill)
     assert lock.sources[source_key].skills == ["single-local-skill"]
 
     scope_dir = get_scope_dir(JupConfig())
-    linked_skill = scope_dir / "skills" / "single-local-skill"
+    linked_skill = scope_dir / "single-local-skill"
     assert linked_skill.is_symlink()
     assert linked_skill.resolve() == mock_local_single_skill.resolve()
 
@@ -294,7 +294,7 @@ def test_local_link_mode_reflects_source_changes(mock_jup_dir, mock_local_single
     from jup.config import get_scope_dir, JupConfig
 
     scope_dir = get_scope_dir(JupConfig())
-    linked_skill_md = scope_dir / "skills" / "single-local-skill" / "SKILL.md"
+    linked_skill_md = scope_dir / "single-local-skill" / "SKILL.md"
     assert linked_skill_md.read_text() == "single skill"
 
     (mock_local_single_skill / "SKILL.md").write_text("updated skill")

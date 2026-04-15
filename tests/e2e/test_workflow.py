@@ -62,7 +62,7 @@ def test_full_workflow(mock_env):
     from jup.config import get_scope_dir, JupConfig
 
     scope_dir = get_scope_dir(JupConfig())
-    target_skill_dir = scope_dir / "skills" / "useful-skill"
+    target_skill_dir = scope_dir / "useful-skill"
     assert target_skill_dir.exists()
     assert not target_skill_dir.is_symlink()
 
@@ -101,7 +101,7 @@ def test_local_directory_workflow(mock_env):
     from jup.config import get_scope_dir, JupConfig
 
     scope_dir = get_scope_dir(JupConfig())
-    linked_skill_dir = scope_dir / "skills" / "skill-a"
+    linked_skill_dir = scope_dir / "skill-a"
     assert linked_skill_dir.exists()
     assert linked_skill_dir.is_symlink()
 

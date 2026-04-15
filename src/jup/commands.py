@@ -322,7 +322,7 @@ def remove_skill(
     # Remove symlinks/directories for this skill/repo from all targets
     targets = []
     scope_dir = get_scope_dir(config)
-    default_skills_dir = scope_dir / "skills"
+    default_skills_dir = scope_dir
     targets.append(default_skills_dir)
     all_agents = get_all_agents(config)
     for agent_name in config.agents:
@@ -395,7 +395,7 @@ def sync_skills(verbose: bool = False):
     targets = []
 
     # Default scope directory
-    default_skills_dir = scope_dir / "skills"
+    default_skills_dir = scope_dir
     targets.append(default_skills_dir)
 
     # Agent directories
@@ -561,7 +561,7 @@ def list_skills():
             agent_dirs[agent_name] = "(unknown)"
 
     # Default location
-    default_loc = str((get_scope_dir(config) / "skills").expanduser().resolve())
+    default_loc = str(get_scope_dir(config).expanduser().resolve())
 
     for source_key, source in lock.sources.items():
         source_type = source.source_type or GITHUB_SOURCE_TYPE
