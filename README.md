@@ -175,6 +175,8 @@ After that, `jup sync` installs the managed skills into the configured target lo
 jup config set sync-mode copy
 ```
 
+Skills are placed directly into the agent's skill folder (e.g., `~/.gemini/skills/my-skill/`), ensuring they are correctly discovered by the agent.
+
 ### Update and Check Features
 
 - `jup sync --update` checks for updates to all installed GitHub skills and updates them if new versions are available. The last update date is tracked per source.

@@ -37,7 +37,8 @@
 - **Skill Structure:** `jup` expects a directory containing a `SKILL.md` file. It supports single-skill directories or collections.
 - **Sync Behavior:** `sync` only manages entries in the lockfile. It does not preserve arbitrary manual edits inside managed target directories.
 - **Sync Mode:** The `sync-mode` alias in the CLI maps to `sync_mode` in the config model.
-- **Agent Registry:** Supported agents and their default paths are defined in `src/jup/models.py`. Tests frequently patch this registry.
+- **Agent Registry:** Supported agents and their default paths are defined in `src/jup/models.py`. The `get_scope_dir` function returns the exact path to an agent's skills directory (e.g., `~/.gemini/skills`). Tests frequently patch this registry.
+- **Path Consistency:** Ensure that `list`, `sync`, and `remove` commands use `get_scope_dir` directly for the default target, avoiding redundant `/skills` nesting.
 
 ### Documentation
 - Treat [README.md](README.md) and [CONTRIBUTING.md](CONTRIBUTING.md) as the primary user-facing and contributor documentation.
