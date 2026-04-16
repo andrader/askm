@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.9.0 (2026-04-16)
+
+### Features
+
+- Update jup list command with improved formatting and filtering
+  ([`0ef6f2d`](https://github.com/andrader/jup/commit/0ef6f2d6fa067c39960ecfce6cff385c6d0215d5))
+
+
 ## v0.8.0 (2026-04-15)
 
 ### Documentation
