@@ -569,7 +569,14 @@ def sync_skills(verbose: bool = False):
 
 
 @app.command("list")
-def list_skills():
+def list_skills(
+    only_local: bool = typer.Option(
+        False, "--only-local", help="Show only local skills"
+    ),
+    remote: bool = typer.Option(
+        False, "--remote", help="Show only remote (GitHub) skills"
+    ),
+):
     """List installed skills as a table."""
     from rich.table import Table
     from rich.text import Text
@@ -581,15 +588,28 @@ def list_skills():
         print("No skills installed.")
         return
 
+    # Filter sources
+    sources_to_show = []
+    for source_key, source in lock.sources.items():
+        source_type = source.source_type or GITHUB_SOURCE_TYPE
+        if only_local and source_type != LOCAL_SOURCE_TYPE:
+            continue
+        if remote and source_type == LOCAL_SOURCE_TYPE:
+            continue
+        sources_to_show.append((source_key, source))
+
+    if not sources_to_show:
+        print("No matching skills installed.")
+        return
+
     table = Table(title="Installed Skills")
-    table.add_column("Repo", style="cyan")
     table.add_column("Skill Name", style="magenta", no_wrap=True)
+    table.add_column("Repo/Origin", style="cyan")
     table.add_column("Location", style="green")
-    table.add_column("Agents", style="yellow")
     table.add_column("Last Updated", style="white")
 
-    # Determine all agent directories
-    agent_dirs = {}
+    # Determine targets (where skills are installed)
+    targets = [get_scope_dir(config)]
     all_agents = get_all_agents(config)
     for agent_name in config.agents:
         if agent_name in all_agents:
@@ -599,14 +619,16 @@ def list_skills():
                 if config.scope == "local"
                 else agent.global_location
             )
-            agent_dirs[agent_name] = loc
-        else:
-            agent_dirs[agent_name] = "(unknown)"
+            targets.append(Path(loc).expanduser().resolve())
+    targets = list(set(targets))
 
-    # Default location
-    default_loc = str(get_scope_dir(config).expanduser().resolve())
+    def format_location_path(p: Path) -> str:
+        # Suppress /skills suffix
+        if p.name == "skills":
+            p = p.parent
+        return rel_home(p)
 
-    for source_key, source in lock.sources.items():
+    for source_key, source in sources_to_show:
         source_type = source.source_type or GITHUB_SOURCE_TYPE
         repo_ref = source.repo or source_key
 
@@ -619,27 +641,26 @@ def list_skills():
             )
 
         last_updated = source.last_updated or "-"
+        if last_updated != "-" and "T" in last_updated:
+            last_updated = last_updated.split("T")[0]
+
         for skill in source.skills:
-            # Default location
-            locations = [rel_home(Path(default_loc).expanduser().resolve())]
-            # Agent locations
-            agent_list = []
-            for agent_name, loc in agent_dirs.items():
-                agent_list.append(agent_name)
-                if loc == "(unknown)":
-                    locations.append(loc)
-                else:
-                    locations.append(rel_home(Path(loc).expanduser().resolve()))
-            # Only show unique locations
-            locations_str = "\n".join(sorted(set(locations)))
-            agents_str = ", ".join(agent_list) if agent_list else "none"
+            loc_list = []
+            for t in targets:
+                skill_path = t / skill
+                if skill_path.exists() or skill_path.is_symlink():
+                    symbol = "🔗 " if skill_path.is_symlink() else "📁 "
+                    loc_list.append(f"{symbol}{format_location_path(t)}")
+
+            locations_str = "\n".join(sorted(set(loc_list)))
             table.add_row(
-                repo_display,
                 str(skill),
-                str(locations_str),
-                str(agents_str),
+                repo_display,
+                locations_str,
                 str(last_updated),
             )
+        table.add_section()
+
     print(table)
 
 
