@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.9.1 (2026-04-16)
+
+### Bug Fixes
+
+- Prioritize standard skill path and add recursive search fallback
+  ([`c755bef`](https://github.com/andrader/jup/commit/c755bef5834eef8ea3d7c4258629ad7ce3af57d9))
+
+
 ## v0.9.0 (2026-04-16)
 
 ### Features
