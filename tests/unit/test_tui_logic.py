@@ -15,9 +15,10 @@ def test_fetch_remote_skill_md_variants():
 
         # Verify it tried the expected URL (defaulting to main branch)
         args, _ = mock_url.call_args
+        actual_url = args[0].full_url if hasattr(args[0], "full_url") else args[0]
         assert (
             "raw.githubusercontent.com/owner/repo/main/skills/myskill/SKILL.md"
-            in args[0]
+            in actual_url
         )
 
 

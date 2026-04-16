@@ -41,17 +41,29 @@ def fetch_remote_skill_md(
     base_path = internal_path.strip("/")
 
     if skill_name:
+        # ALWAYS try standard location first
+        standard_path = f"skills/{skill_name}/SKILL.md"
+        paths_to_try.append(standard_path)
+
         if base_path:
             # If internal_path points to the skill directory itself
-            paths_to_try.append(f"{base_path}/SKILL.md")
+            p1 = f"{base_path}/SKILL.md"
+            if p1 not in paths_to_try:
+                paths_to_try.append(p1)
             # If internal_path points to a parent directory
-            paths_to_try.append(f"{base_path}/{skill_name}/SKILL.md")
-        else:
-            # Common default locations
-            paths_to_try.append(f"skills/{skill_name}/SKILL.md")
-            paths_to_try.append(f".claude/skills/{skill_name}/SKILL.md")
-            paths_to_try.append(f"{skill_name}/SKILL.md")
-            paths_to_try.append("SKILL.md")
+            p2 = f"{base_path}/{skill_name}/SKILL.md"
+            if p2 not in paths_to_try:
+                paths_to_try.append(p2)
+
+        # Common fallback locations
+        others = [
+            f".claude/skills/{skill_name}/SKILL.md",
+            f"{skill_name}/SKILL.md",
+            "SKILL.md",
+        ]
+        for p in others:
+            if p not in paths_to_try:
+                paths_to_try.append(p)
     else:
         if base_path:
             paths_to_try.append(f"{base_path}/SKILL.md")
@@ -64,16 +76,81 @@ def fetch_remote_skill_md(
     for p in paths_to_try:
         url = f"https://raw.githubusercontent.com/{repo}/main/{p}"
         try:
-            with urllib.request.urlopen(url) as response:
+            req = urllib.request.Request(url)
+            req.add_header("User-Agent", "jup-cli")
+            with urllib.request.urlopen(req) as response:
                 return response.read().decode()
         except Exception:
             # Try master branch if main fails
             url = f"https://raw.githubusercontent.com/{repo}/master/{p}"
             try:
-                with urllib.request.urlopen(url) as response:
+                req = urllib.request.Request(url)
+                req.add_header("User-Agent", "jup-cli")
+                with urllib.request.urlopen(req) as response:
                     return response.read().decode()
             except Exception:
                 continue
+
+    # Fallback: Recursive search using GitHub API
+    if skill_name:
+        try:
+            api_url = f"https://api.github.com/repos/{repo}/git/trees/main?recursive=1"
+            req = urllib.request.Request(api_url)
+            req.add_header("User-Agent", "jup-cli")
+            with urllib.request.urlopen(req) as response:
+                tree_data = json.loads(response.read().decode())
+                for item in tree_data.get("tree", []):
+                    path = item["path"]
+                    # Search for repo/**/skill-name/SKILL.md
+                    if (
+                        path.endswith(f"/{skill_name}/SKILL.md")
+                        or path == f"{skill_name}/SKILL.md"
+                    ):
+                        if path in paths_to_try:
+                            continue  # Already tried
+
+                        # Fetch the found path
+                        url = f"https://raw.githubusercontent.com/{repo}/main/{path}"
+                        try:
+                            req = urllib.request.Request(url)
+                            req.add_header("User-Agent", "jup-cli")
+                            with urllib.request.urlopen(req) as response:
+                                return response.read().decode()
+                        except Exception:
+                            # Try master as well
+                            url = f"https://raw.githubusercontent.com/{repo}/master/{path}"
+                            try:
+                                req = urllib.request.Request(url)
+                                req.add_header("User-Agent", "jup-cli")
+                                with urllib.request.urlopen(req) as response:
+                                    return response.read().decode()
+                            except Exception:
+                                continue
+        except Exception:
+            # Fallback to master branch tree if main fails
+            try:
+                api_url = (
+                    f"https://api.github.com/repos/{repo}/git/trees/master?recursive=1"
+                )
+                req = urllib.request.Request(api_url)
+                req.add_header("User-Agent", "jup-cli")
+                with urllib.request.urlopen(req) as response:
+                    tree_data = json.loads(response.read().decode())
+                    for item in tree_data.get("tree", []):
+                        path = item["path"]
+                        if (
+                            path.endswith(f"/{skill_name}/SKILL.md")
+                            or path == f"{skill_name}/SKILL.md"
+                        ):
+                            if path in paths_to_try:
+                                continue
+                            url = f"https://raw.githubusercontent.com/{repo}/master/{path}"
+                            req = urllib.request.Request(url)
+                            req.add_header("User-Agent", "jup-cli")
+                            with urllib.request.urlopen(req) as response:
+                                return response.read().decode()
+            except Exception:
+                pass
 
     return f"SKILL.md not found in {repo}.\nTried paths:\n- " + "\n- ".join(
         paths_to_try
@@ -787,7 +864,9 @@ def find_skills(
         print(f"Searching registry: [cyan]{api_url}[/cyan]")
 
     try:
-        with urllib.request.urlopen(api_url) as response:
+        req = urllib.request.Request(api_url)
+        req.add_header("User-Agent", "jup-cli")
+        with urllib.request.urlopen(req) as response:
             data = json.loads(response.read().decode())
     except Exception as e:
         print(f"[red]Failed to query the registry: {e}[/red]")
