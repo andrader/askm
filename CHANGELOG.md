@@ -1,6 +1,88 @@
 # CHANGELOG
 
 
+## v0.11.0 (2026-04-17)
+
+### Bug Fixes
+
+- **list**: Detect and flag missing sources and broken symlinks
+  ([`0b13f61`](https://github.com/andrader/jup/commit/0b13f61000d2e26877b3a79751502e69ef9ae456))
+
+- **list**: Improve table readability for multi-line entries
+  ([`0626fe8`](https://github.com/andrader/jup/commit/0626fe85c28bc8e0a293ed3d14cbcb77a8e56771))
+
+- **list**: Restore location paths and symlink symbols in table output
+  ([`7f6d7aa`](https://github.com/andrader/jup/commit/7f6d7aa0dee3fae74b34bb56cfedea7a32b5efcf))
+
+- **sync**: Prevent self-deletion when source is in target agent dir
+  ([`3839040`](https://github.com/andrader/jup/commit/3839040a8b1d0c5f4bdde31a790fedc412261a73))
+
+### Chores
+
+- Add beta release config and update roadmap
+  ([`3a2cb05`](https://github.com/andrader/jup/commit/3a2cb052b2ed07a03c023d037bc13d11cfaa298d))
+
+- Ignore .worktrees directory
+  ([`c301f13`](https://github.com/andrader/jup/commit/c301f136f347638615df923cc7569a02707e605f))
+
+- Setup mkdocs, update ty config, and fix QA diagnostics
+  ([`fb1851f`](https://github.com/andrader/jup/commit/fb1851f03e9f9ce82668a7989860d650137ba778))
+
+### Code Style
+
+- **list**: Color entire location red when broken or missing
+  ([`a42ef9a`](https://github.com/andrader/jup/commit/a42ef9adfd64d13d68faad8ab45cda991aa78225))
+
+- **list**: Revert to clean table style without horizontal lines
+  ([`20577cd`](https://github.com/andrader/jup/commit/20577cd8ecc8e1476d27dd481c0574882d879068))
+
+- **list**: Simplify output by removing redundant installed icon
+  ([`8b0b370`](https://github.com/andrader/jup/commit/8b0b370dc41c1ba76c78980b3f631426b1ef21e5))
+
+- **list**: Use ⛓️‍💥 as the primary symbol for broken links
+  ([`088b48d`](https://github.com/andrader/jup/commit/088b48dd83e8a953c56a30c409261864270fa042))
+
+- **list**: Use ⛓️‍💥 for broken links
+  ([`26cf650`](https://github.com/andrader/jup/commit/26cf650e1ab94cff3a90e7ee0ff7abd48f389d06))
+
+### Documentation
+
+- Update roadmap with completed tasks
+  ([`02e2b60`](https://github.com/andrader/jup/commit/02e2b60218c54022214c250a6c3b637c11b2c4ee))
+
+### Features
+
+- Sync shortcuts, interactive sync, enhanced move, and new agent skills
+  ([`d6b49f8`](https://github.com/andrader/jup/commit/d6b49f80bfc6f32a0277b9f944132d475726e7f4))
+
+This includes jup up, jup sync -i, jup mv --rename/--to-remote, and the new architect/roadmap
+  skills.
+
+- **add**: Detect and handle unmanaged skills in agent directories
+  ([`ce3763b`](https://github.com/andrader/jup/commit/ce3763b89161f613854bdde2f7f3038ff1a4303a))
+
+- **list**: Add symbols legend to table output
+  ([`65685d0`](https://github.com/andrader/jup/commit/65685d021ce43a84b8ea77182b4f5e10746b924b))
+
+- **list**: Add symbols to differentiate local and remote sources
+  ([`bd0c9e0`](https://github.com/andrader/jup/commit/bd0c9e015d8b86913d55956d367a000e996f61e7))
+
+- **list**: Add usage tips and update backlog
+  ([`9a51765`](https://github.com/andrader/jup/commit/9a51765619c7ae162d1c598be728c4ca535c7d1d))
+
+- **list**: Move source gone symbol and rename locations column
+  ([`a4f1e4c`](https://github.com/andrader/jup/commit/a4f1e4c91ace5f608eb00d2f8cd249a76b92a7c0))
+
+- **list**: Refine status symbols and placement
+  ([`3ac551f`](https://github.com/andrader/jup/commit/3ac551f2c98d76122f168fd61e0d22c5232016cd))
+
+- **mv**: Add --no-move flag and implement local source moving
+  ([`d9f3a92`](https://github.com/andrader/jup/commit/d9f3a92250ddee0b93fe1f72de489630c3173448))
+
+- **mv**: Rename --no-move to --ref-only and update list tips
+  ([`741bf5b`](https://github.com/andrader/jup/commit/741bf5be7781c7b1669488b5ee939c144de6f02e))
+
+
 ## v0.10.0 (2026-04-17)
 
 ### Chores
