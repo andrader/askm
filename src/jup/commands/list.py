@@ -189,29 +189,27 @@ def list_skills(
         status_lines = []
         if not skill["source_exists"]:
             status_lines.append(
-                f"[bold red]⚠️ Source Missing[/bold red] [dim]({skill['source_path']})[/dim]"
+                f"[bold red]⚠️[/bold red] [dim]({skill['source_path']})[/dim]"
             )
 
         for agent_name, info in skill["status"].items():
+            symbol = "🔗" if info["is_symlink"] else "📁"
             if info["is_broken"]:
                 color = "red"
-                icon = "❌"
-                symbol = "🔗"
+                icon = "❌ "
                 status_lines.append(
-                    f"[{color}]{icon} {symbol} {agent_name} (Broken Link)[/{color}] [dim]({info['path']})[/dim]"
+                    f"[{color}]{icon}{symbol} {agent_name}[/{color}] [dim]({info['path']})[/dim]"
                 )
             elif info["exists"]:
                 color = "green"
-                icon = "✅"
-                symbol = "🔗" if info["is_symlink"] else "📁"
                 status_lines.append(
-                    f"[{color}]{icon} {symbol} {agent_name}[/{color}] [dim]({info['path']})[/dim]"
+                    f"[{color}]{symbol} {agent_name}[/{color}] [dim]({info['path']})[/dim]"
                 )
             else:
                 color = "red"
-                icon = "❌"
+                icon = "❌ "
                 status_lines.append(
-                    f"[{color}]{icon} {agent_name}[/{color}] [dim]({info['path']})[/dim]"
+                    f"[{color}]{icon}{symbol} {agent_name}[/{color}] [dim]({info['path']})[/dim]"
                 )
 
         status_str = "\n".join(status_lines)
@@ -238,7 +236,7 @@ def list_skills(
     if installed_skills_data:
         print(table)
         print(
-            "\n[dim]Legend: ✅ Installed | ❌ Missing/Broken | 🔗 Symlink | 📁 Directory | ⚠️ Source Gone[/dim]"
+            "\n[dim]Legend: ❌ Missing/Broken | 🔗 Symlink | 📁 Directory | ⚠️ Source Gone[/dim]"
         )
     elif not only_local and not remote:
         print("No managed skills installed.")
