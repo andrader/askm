@@ -69,6 +69,11 @@ def list_skills(
     installed_skills_data = []
     managed_skill_names = set()
 
+    def format_location_path(p: Path) -> str:
+        if p.name == "skills":
+            p = p.parent
+        return rel_home(p)
+
     for source_key, source in sources_to_show:
         source_type = source.source_type or GITHUB_SOURCE_TYPE
         repo_ref = source.repo or source_key
@@ -78,10 +83,16 @@ def list_skills(
             status = {}
             for agent_name, agent_dir in configured_agents:
                 skill_path = agent_dir / skill_name
+                info = {
+                    "path": format_location_path(agent_dir),
+                    "exists": False,
+                    "is_symlink": False,
+                }
                 if skill_path.exists() or skill_path.is_symlink():
-                    status[agent_name] = "installed"
-                else:
-                    status[agent_name] = "missing"
+                    info["exists"] = True
+                    info["is_symlink"] = skill_path.is_symlink()
+
+                status[agent_name] = info
 
             installed_skills_data.append(
                 {
@@ -122,20 +133,25 @@ def list_skills(
     table = Table(title="Installed Skills")
     table.add_column("Skill Name", style="magenta", no_wrap=True)
     table.add_column("Repo/Origin", style="cyan")
-    table.add_column("Status", style="green")
+    table.add_column("Location / Status", style="green")
     table.add_column("Last Updated", style="white")
-
-    def format_location_path(p: Path) -> str:
-        if p.name == "skills":
-            p = p.parent
-        return rel_home(p)
 
     for skill in installed_skills_data:
         status_lines = []
-        for agent_name, state in skill["status"].items():
-            color = "green" if state == "installed" else "red"
-            icon = "✅" if state == "installed" else "❌"
-            status_lines.append(f"[{color}]{icon} {agent_name}[/{color}]")
+        for agent_name, info in skill["status"].items():
+            if info["exists"]:
+                color = "green"
+                icon = "✅"
+                symbol = "🔗" if info["is_symlink"] else "📁"
+                status_lines.append(
+                    f"[{color}]{icon} {symbol} {agent_name}[/{color}] [dim]({info['path']})[/dim]"
+                )
+            else:
+                color = "red"
+                icon = "❌"
+                status_lines.append(
+                    f"[{color}]{icon} {agent_name}[/{color}] [dim]({info['path']})[/dim]"
+                )
 
         status_str = "\n".join(status_lines)
 
