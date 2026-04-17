@@ -17,10 +17,12 @@ from .utils import GH_PREFIX, GITHUB_SOURCE_TYPE, rel_home
 @app.command("mv")
 def move_skill(
     target: str = typer.Argument(..., help="Skill name or repository (owner/repo)"),
-    new_category: str = typer.Argument(..., help="New category for the skill"),
+    new_destination: str = typer.Argument(
+        ..., help="New category or filesystem path for the skill"
+    ),
     verbose: bool = False,
 ):
-    """Move a skill or repository to a new category."""
+    """Move a skill or repository to a new category or filesystem path."""
     verbose_state.verbose = verbose
     config = get_config()
     lock = get_skills_lock(config)
@@ -49,12 +51,15 @@ def move_skill(
 
     source = lock.sources[repo_key]
     old_category = source.category or "misc"
+    source_type = source.source_type or GITHUB_SOURCE_TYPE
 
-    if old_category == new_category:
+    # Determine if new_destination is a path or a category
+    is_path = "/" in new_destination or new_destination.startswith(".")
+    new_category = old_category if is_path else new_destination
+
+    if not is_path and old_category == new_category and not source.source_path:
         print(f"Skill is already in category '[cyan]{new_category}[/cyan]'.")
         return
-
-    source_type = source.source_type or GITHUB_SOURCE_TYPE
 
     if source_type == GITHUB_SOURCE_TYPE:
         storage_base = get_skills_storage_dir()
@@ -65,18 +70,38 @@ def move_skill(
 
         owner, repo_name = repo_ref.split("/", 1)
 
-        old_dir = storage_base / old_category / GH_PREFIX / owner / repo_name
-        new_dir = storage_base / new_category / GH_PREFIX / owner / repo_name
+        if source.source_path:
+            old_dir = Path(source.source_path).expanduser().resolve()
+        else:
+            old_dir = storage_base / old_category / GH_PREFIX / owner / repo_name
+
+        if is_path:
+            new_dir = Path(new_destination).expanduser().resolve()
+            # If it's a directory that already exists and doesn't look like the repo name,
+            # maybe we should append the repo name?
+            # But the user might want to move it TO that exact path.
+            # Standard 'mv' behavior: if dest is a dir, move src INTO it.
+            if new_dir.is_dir():
+                new_dir = new_dir / repo_name
+        else:
+            new_dir = storage_base / new_category / GH_PREFIX / owner / repo_name
 
         if old_dir.exists():
+            if old_dir.resolve() == new_dir.resolve():
+                print(f"Skill is already at [cyan]{rel_home(new_dir)}[/cyan].")
+                return
+
             if new_dir.exists():
                 print(
                     f"[yellow]Warning: Target directory {rel_home(new_dir)} already exists. Overwriting...[/yellow]"
                 )
-                shutil.rmtree(new_dir)
+                if new_dir.is_dir():
+                    shutil.rmtree(new_dir)
+                else:
+                    new_dir.unlink()
 
             new_dir.parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(old_dir, new_dir)
+            shutil.move(str(old_dir), str(new_dir))
             if verbose:
                 print(
                     f"Moved [cyan]{rel_home(old_dir)}[/cyan] to [cyan]{rel_home(new_dir)}[/cyan]"
@@ -86,15 +111,28 @@ def move_skill(
                 f"[yellow]Warning: Source directory {rel_home(old_dir)} not found. Only updating lockfile.[/yellow]"
             )
 
+        # Update source_path: if it's in the default storage, we can keep it None or update it.
+        # If it's a custom path, we MUST set it.
+        if is_path:
+            source.source_path = str(new_dir)
+        else:
+            # If moving back to a category, clear source_path to use default logic
+            source.source_path = None
+
     # Update lockfile
     source.category = new_category
     save_skills_lock(config, lock)
 
-    print(
-        f"✅ Moved [magenta]{target}[/magenta] from [yellow]{old_category}[/yellow] to [green]{new_category}[/green]"
-    )
+    if is_path:
+        print(
+            f"✅ Moved [magenta]{target}[/magenta] to [green]{rel_home(Path(new_destination).expanduser())}[/green]"
+        )
+    else:
+        print(
+            f"✅ Moved [magenta]{target}[/magenta] from [yellow]{old_category}[/yellow] to [green]{new_category}[/green]"
+        )
 
-    # Trigger sync to update symlinks (since source paths changed for GitHub skills)
-    from . import sync_skills
+    # Trigger sync to update symlinks
+    from .sync import sync_skills
 
     sync_skills(verbose=verbose_state.verbose)

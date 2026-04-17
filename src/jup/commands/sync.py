@@ -109,18 +109,21 @@ def sync_skills(verbose: bool = False):
             local_path_str = source.source_path or source_key
             local_source_root = Path(local_path_str).expanduser().resolve()
         else:
-            repo_ref = source.repo or source_key
-            if "/" not in repo_ref:
-                print(f"⚠️  Invalid repository reference: [red]{repo_ref}[/red]")
-                continue
-            owner, repo_name = repo_ref.split("/", 1)
-            storage_dir = (
-                get_skills_storage_dir()
-                / str(source.category or "misc")
-                / GH_PREFIX
-                / owner
-                / repo_name
-            )
+            if source.source_path:
+                storage_dir = Path(source.source_path).expanduser().resolve()
+            else:
+                repo_ref = source.repo or source_key
+                if "/" not in repo_ref:
+                    print(f"⚠️  Invalid repository reference: [red]{repo_ref}[/red]")
+                    continue
+                owner, repo_name = repo_ref.split("/", 1)
+                storage_dir = (
+                    get_skills_storage_dir()
+                    / str(source.category or "misc")
+                    / GH_PREFIX
+                    / owner
+                    / repo_name
+                )
 
         for skill in source.skills:
             if source_type == LOCAL_SOURCE_TYPE:
