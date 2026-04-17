@@ -25,37 +25,25 @@ def fetch_remote_skill_md(
     base_path = internal_path.strip("/")
 
     if skill_name:
-        # ALWAYS try standard location first
-        standard_path = f"skills/{skill_name}/SKILL.md"
-        paths_to_try.append(standard_path)
+        # Standard location
+        paths_to_try.append(f"skills/{skill_name}/SKILL.md")
 
         if base_path:
             # If internal_path points to the skill directory itself
-            p1 = f"{base_path}/SKILL.md"
-            if p1 not in paths_to_try:
-                paths_to_try.append(p1)
+            paths_to_try.append(f"{base_path}/SKILL.md")
             # If internal_path points to a parent directory
-            p2 = f"{base_path}/{skill_name}/SKILL.md"
-            if p2 not in paths_to_try:
-                paths_to_try.append(p2)
+            p_full = f"{base_path}/{skill_name}/SKILL.md"
+            if p_full not in paths_to_try:
+                paths_to_try.append(p_full)
 
-        # Common fallback locations
-        others = [
-            f".claude/skills/{skill_name}/SKILL.md",
-            f"{skill_name}/SKILL.md",
-            "SKILL.md",
-        ]
-        for p in others:
-            if p not in paths_to_try:
-                paths_to_try.append(p)
+        # Root location fallback
+        if "SKILL.md" not in paths_to_try:
+            paths_to_try.append("SKILL.md")
     else:
         if base_path:
             paths_to_try.append(f"{base_path}/SKILL.md")
+        if "SKILL.md" not in paths_to_try:
             paths_to_try.append("SKILL.md")
-        else:
-            paths_to_try.append("SKILL.md")
-            paths_to_try.append("skills/SKILL.md")
-            paths_to_try.append(".claude/skills/SKILL.md")
 
     for p in paths_to_try:
         url = f"https://raw.githubusercontent.com/{repo}/main/{p}"
