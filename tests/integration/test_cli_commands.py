@@ -78,8 +78,8 @@ def mock_local_single_skill(tmp_path):
 
 
 def test_add_skill_with_path_and_skills_options(mock_jup_dir, mock_repo_structure):
-    # Mocking run_git_clone in commands.py
-    with patch("jup.commands.run_git_clone") as mock_clone:
+    # Mocking run_git_clone in add.py
+    with patch("jup.commands.add.run_git_clone") as mock_clone:
 
         def side_effect(repo_url, dest_dir, **kwargs):
             shutil.copytree(mock_repo_structure, dest_dir, dirs_exist_ok=True)
@@ -343,7 +343,7 @@ def test_find_skills(mock_jup_dir):
     mock_response.__enter__.return_value = mock_response
 
     with patch("urllib.request.urlopen", return_value=mock_response):
-        with patch("jup.commands.add_skill"):
+        with patch("jup.commands.find.add_skill"):
             # Non-interactive mode (default)
             result = runner.invoke(app, ["find", "python"])
             assert result.exit_code == 0
@@ -443,7 +443,7 @@ def test_find_skills_nested_path(mock_jup_dir):
     mock_response.__enter__.return_value = mock_response
 
     with patch("urllib.request.urlopen", return_value=mock_response):
-        with patch("jup.commands.add_skill"):
+        with patch("jup.commands.find.add_skill"):
             # Interactive mode - Mocking prompt_toolkit Application.run
             with patch("prompt_toolkit.application.Application.run") as mock_run:
                 result = runner.invoke(app, ["find", "python", "--interactive"])

@@ -33,7 +33,7 @@ def mock_env(tmp_path):
         with patch("jup.config.CONFIG_FILE", jup_dir / "config.json"):
             with patch("jup.config.DEFAULT_AGENTS", mock_agents):
                 with patch("jup.models.DEFAULT_AGENTS", mock_agents):
-                    with patch("jup.commands.run_git_clone") as mock_clone:
+                    with patch("jup.commands.add.run_git_clone") as mock_clone:
 
                         def side_effect(repo_url, dest_dir, **kwargs):
                             shutil.copytree(repo_dir, dest_dir, dirs_exist_ok=True)
