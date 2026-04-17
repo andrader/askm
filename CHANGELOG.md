@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v0.12.0-beta.1 (2026-04-17)
+
+### Chores
+
+- Enable multi-branch release support
+  ([`c4b4f4a`](https://github.com/andrader/jup/commit/c4b4f4ab3bca22467c2171af7ae9de767974c852))
+
+- Setup beta/stable branch workflow and weekly release PR
+  ([`ef9705b`](https://github.com/andrader/jup/commit/ef9705b343879cadfa7e7a6beb70fe075d1a56f0))
+
+### Features
+
+- Trigger beta release for multi-branch support
+  ([`6ea8c3d`](https://github.com/andrader/jup/commit/6ea8c3d8fc782cc4849d943532928cd2675a332d))
+
+
 ## v0.11.0 (2026-04-17)
 
 ### Bug Fixes
