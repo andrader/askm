@@ -182,16 +182,11 @@ def list_skills(
     table = Table(title="Installed Skills")
     table.add_column("Skill Name", style="magenta", no_wrap=True)
     table.add_column("Repo/Origin", style="cyan")
-    table.add_column("Location / Status", style="green")
+    table.add_column("Other Locations", style="green")
     table.add_column("Last Updated", style="white")
 
     for skill in installed_skills_data:
         status_lines = []
-        if not skill["source_exists"]:
-            status_lines.append(
-                f"[bold red]⚠️[/bold red] [dim]({skill['source_path']})[/dim]"
-            )
-
         for agent_name, info in skill["status"].items():
             symbol = "🔗" if info["is_symlink"] else "📁"
             if info["is_broken"]:
@@ -219,14 +214,15 @@ def list_skills(
             last_updated = last_updated.split("T")[0]
 
         repo_display = skill["repo"]
+        source_gone_symbol = "⚠️ " if not skill["source_exists"] else ""
         if skill["source_type"] == GITHUB_SOURCE_TYPE:
-            repo_text = Text("🌐 ", style="white")
+            repo_text = Text(f"{source_gone_symbol}🌐 ", style="white")
             repo_text.append(
                 repo_display, style=f"cyan link https://github.com/{repo_display}"
             )
             repo_display = repo_text
         else:
-            repo_text = Text("🏠 ", style="white")
+            repo_text = Text(f"{source_gone_symbol}🏠 ", style="white")
             repo_text.append(
                 rel_home(Path(repo_display).expanduser().resolve()), style="cyan"
             )
