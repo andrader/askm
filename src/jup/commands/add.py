@@ -20,6 +20,7 @@ from .utils import (
     GITHUB_SOURCE_TYPE,
     rel_home,
     run_git_clone,
+    is_path_in_agent_dir,
 )
 
 
@@ -61,6 +62,7 @@ def add_skill(
 
     local_path = Path(repo).expanduser()
     is_local_source = local_path.exists()
+    config = get_config()
 
     if is_local_source:
         if not local_path.is_dir():
@@ -68,6 +70,28 @@ def add_skill(
             raise typer.Exit(code=1)
 
         resolved_local = local_path.resolve()
+
+        agent_name = is_path_in_agent_dir(resolved_local, config)
+        if agent_name:
+            print(
+                f"[yellow]Source is inside an agent directory ({agent_name}).[/yellow]"
+            )
+            if typer.confirm(
+                "Move to central storage? (Recommended for management)", default=True
+            ):
+                storage_base = get_skills_storage_dir()
+                new_path = storage_base / category / resolved_local.name
+
+                if new_path.exists():
+                    print(
+                        f"[red]Destination {rel_home(new_path)} already exists. Aborting move.[/red]"
+                    )
+                else:
+                    print(f"Moving to [cyan]{rel_home(new_path)}[/cyan]...")
+                    new_path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(resolved_local), str(new_path))
+                    resolved_local = new_path
+
         source_type = LOCAL_SOURCE_TYPE
         source_key = str(resolved_local)
         source_display = rel_home(resolved_local)
@@ -167,7 +191,6 @@ def add_skill(
             if verbose_state.verbose:
                 print(f"Copied skills to [cyan]{rel_home(target_dir)}[/cyan]")
 
-    config = get_config()
     lock = get_skills_lock(config)
 
     lock.sources[source_key] = SkillSource(

@@ -153,3 +153,16 @@ def run_git_clone(repo_url: str, dest_dir: Path, **kwargs):
     except subprocess.CalledProcessError as e:
         print(f"Failed to clone: {e.stderr.decode()}")
         raise
+
+
+def is_path_in_agent_dir(path: Path, config) -> str | None:
+    resolved_path = path.resolve()
+    from ..config import get_all_agents
+
+    all_agents = get_all_agents(config)
+    for name, agent in all_agents.items():
+        for loc in [agent.global_location, agent.local_location]:
+            agent_path = Path(loc).expanduser().resolve()
+            if resolved_path == agent_path or agent_path in resolved_path.parents:
+                return name
+    return None
