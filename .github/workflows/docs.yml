@@ -3,6 +3,7 @@ name: Docs
 on:
   push:
     branches:
+      - main
       - release
   workflow_dispatch:
 
@@ -27,6 +28,9 @@ jobs:
 
       - name: Install dependencies
         run: uv sync
+
+      - name: Debug - List files
+        run: ls -R
 
       - name: Deploy Docs
         run: |
