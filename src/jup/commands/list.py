@@ -191,7 +191,7 @@ def list_skills(
             symbol = "🔗" if info["is_symlink"] else "📁"
             if info["is_broken"]:
                 status_lines.append(
-                    f"[red]{symbol} {agent_name} ({info['path']})[/red] [bold red]💔[/bold red]"
+                    f"[red]{symbol} {agent_name} ({info['path']})[/red] [bold red]⛓️‍💥[/bold red]"
                 )
             elif info["exists"]:
                 status_lines.append(
@@ -239,7 +239,7 @@ def list_skills(
     if installed_skills_data:
         print(table)
         print(
-            "\n[dim]Legend: 🏠 Local | 🌐 GitHub | 🔗 Symlink | 📁 Directory | ❌ Missing | 💔 Broken | ⚠️ Source Gone[/dim]"
+            "\n[dim]Legend: 🏠 Local | 🌐 GitHub | 🔗 Symlink | 📁 Directory | ❌ Missing | ⛓️‍💥 Broken | ⚠️ Source Gone[/dim]"
         )
     elif not only_local and not remote:
         print("No managed skills installed.")
