@@ -257,5 +257,5 @@ def list_skills(
     # Render Tips
     print("\n[bold blue]Tips:[/bold blue]")
     print("  - Manage unmanaged: [cyan]jup add <path>[/cyan]")
-    print("  - Fix missing source: [cyan]jup mv <skill> <new-path>[/cyan]")
+    print("  - Fix missing source: [cyan]jup mv <skill> <new-path> --ref-only[/cyan]")
     print("  - Fix broken/missing link: [cyan]jup sync[/cyan]")

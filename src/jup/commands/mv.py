@@ -20,8 +20,10 @@ def move_skill(
     new_destination: str = typer.Argument(
         ..., help="New category or filesystem path for the skill"
     ),
-    no_move: bool = typer.Option(
-        False, "--no-move", help="Only update the lockfile, do not move any files"
+    ref_only: bool = typer.Option(
+        False,
+        "--ref-only",
+        help="Only update the lockfile reference, do not move any files",
     ),
     verbose: bool = False,
 ):
@@ -80,7 +82,7 @@ def move_skill(
 
         if is_path:
             new_dir = Path(new_destination).expanduser().resolve()
-            if not no_move and new_dir.is_dir():
+            if not ref_only and new_dir.is_dir():
                 new_dir = new_dir / repo_name
         else:
             new_dir = storage_base / new_category / GH_PREFIX / owner / repo_name
@@ -94,13 +96,13 @@ def move_skill(
 
         if is_path:
             new_dir = Path(new_destination).expanduser().resolve()
-            if not no_move and new_dir.is_dir() and old_dir.name:
+            if not ref_only and new_dir.is_dir() and old_dir.name:
                 new_dir = new_dir / old_dir.name
         else:
             # If moving to a category, we just update the category metadata
             new_dir = old_dir
 
-    if not no_move:
+    if not ref_only:
         if old_dir.exists():
             if old_dir.resolve() == new_dir.resolve():
                 if not is_path and source.category != new_category:
