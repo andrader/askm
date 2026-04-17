@@ -155,6 +155,20 @@ def run_git_clone(repo_url: str, dest_dir: Path, **kwargs):
         raise
 
 
+def run_git_pull(repo_dir: Path):
+    """Run git pull in the specified directory."""
+    try:
+        subprocess.run(
+            ["git", "-C", str(repo_dir), "pull"],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to pull in {rel_home(repo_dir)}: {e.stderr.decode()}")
+        raise
+
+
 def is_path_in_agent_dir(path: Path, config) -> str | None:
     resolved_path = path.resolve()
     from ..config import get_all_agents

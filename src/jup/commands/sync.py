@@ -1,7 +1,10 @@
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Annotated
 
+import typer
+from prompt_toolkit.shortcuts import checkboxlist_dialog
 from rich import print
 
 from ..config import (
@@ -18,16 +21,115 @@ from .utils import (
     GITHUB_SOURCE_TYPE,
     LOCAL_SOURCE_TYPE,
     rel_home,
+    run_git_pull,
 )
 
 
 @app.command("sync")
-def sync_skills(verbose: bool = False):
+def sync_skills(
+    update: Annotated[
+        bool,
+        typer.Option("--update", "-u", help="Update GitHub sources before syncing"),
+    ] = False,
+    interactive: Annotated[
+        bool,
+        typer.Option(
+            "--interactive", "-i", help="Select which skills to sync interactively"
+        ),
+    ] = False,
+    verbose: bool = False,
+):
     """Update all links/copies in default-lib and for other agents."""
     verbose_state.verbose = verbose
+    sync_logic(update=update, verbose=verbose, interactive=interactive)
+
+
+@app.command("up", hidden=True)
+def up_shortcut(verbose: bool = False):
+    """Shortcut for jup sync --update"""
+    verbose_state.verbose = verbose
+    sync_logic(update=True, verbose=verbose)
+
+
+def sync_logic(update: bool = False, verbose: bool = False, interactive: bool = False):
     config = get_config()
     lock = get_skills_lock(config)
     scope_dir = get_scope_dir(config)
+
+    selected_skills = None
+    if interactive:
+        all_skills = []
+        for source_key, source in lock.sources.items():
+            for skill in source.skills:
+                all_skills.append((skill, skill))
+
+        if not all_skills:
+            print("[yellow]No skills found in lockfile to sync.[/yellow]")
+            return
+
+        # Sort for better UI
+        all_skills.sort()
+
+        selected_skills = checkboxlist_dialog(
+            title="Interactive Sync",
+            text="Select skills to sync (Space to toggle, Enter to confirm):",
+            values=all_skills,
+            default_values=[s[0] for s in all_skills],
+        ).run()
+
+        if selected_skills is None:
+            # User cancelled
+            return
+
+        if not selected_skills:
+            print("[yellow]No skills selected. Nothing to sync.[/yellow]")
+            return
+
+    # 1. Update GitHub sources if requested
+    if update:
+        print("Checking for updates...")
+        updated_count = 0
+        for source_key, source in lock.sources.items():
+            # If interactive, only update sources that have selected skills
+            if selected_skills is not None:
+                if not any(s in selected_skills for s in source.skills):
+                    continue
+
+            source_type = source.source_type or GITHUB_SOURCE_TYPE
+            if source_type == GITHUB_SOURCE_TYPE:
+                if source.source_path:
+                    storage_dir = Path(source.source_path).expanduser().resolve()
+                else:
+                    repo_ref = source.repo or source_key
+                    if "/" not in repo_ref:
+                        continue
+                    owner, repo_name = repo_ref.split("/", 1)
+                    storage_dir = (
+                        get_skills_storage_dir()
+                        / str(source.category or "misc")
+                        / GH_PREFIX
+                        / owner
+                        / repo_name
+                    )
+
+                if storage_dir.exists() and (storage_dir / ".git").exists():
+                    if verbose:
+                        print(f"Updating [cyan]{rel_home(storage_dir)}[/cyan]...")
+                    try:
+                        run_git_pull(storage_dir)
+                        updated_count += 1
+                        # Update last_updated on successful pull
+                        source.last_updated = datetime.now(timezone.utc).isoformat(
+                            timespec="seconds"
+                        )
+                    except Exception:
+                        print(f"[red]Failed to update {rel_home(storage_dir)}[/red]")
+
+        if updated_count > 0:
+            from ..config import save_skills_lock
+
+            save_skills_lock(config, lock)
+            print(f"Updated {updated_count} GitHub sources.")
 
     # Target directories
     targets = []
@@ -126,6 +228,9 @@ def sync_skills(verbose: bool = False):
                 )
 
         for skill in source.skills:
+            if selected_skills is not None and skill not in selected_skills:
+                continue
+
             if source_type == LOCAL_SOURCE_TYPE:
                 if local_source_root is None:
                     print(f"⚠️  Invalid local source path for [red]{source_key}[/red].")

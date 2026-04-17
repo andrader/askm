@@ -1,6 +1,7 @@
 import json
 from unittest.mock import MagicMock, patch
 import urllib.request
+import urllib.error
 from jup.commands import fetch_remote_skill_md
 
 
@@ -18,7 +19,7 @@ def test_fetch_remote_skill_md_recursive_search():
                 mock_response.read.return_value = b"# Found via search"
                 mock_response.__enter__.return_value = mock_response
                 return mock_response
-            raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+            raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)  # type: ignore
 
         # Mock GitHub API tree
         if "api.github.com" in url:
@@ -33,7 +34,7 @@ def test_fetch_remote_skill_md_recursive_search():
             mock_response.__enter__.return_value = mock_response
             return mock_response
 
-        raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+        raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)  # type: ignore
 
     with patch("urllib.request.urlopen", side_effect=side_effect):
         # Test recursive search

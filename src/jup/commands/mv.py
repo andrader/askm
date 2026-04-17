@@ -1,5 +1,6 @@
 import shutil
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich import print
@@ -11,7 +12,7 @@ from ..config import (
     save_skills_lock,
 )
 from ..main import app, verbose_state
-from .utils import GH_PREFIX, GITHUB_SOURCE_TYPE, rel_home
+from .utils import GH_PREFIX, GITHUB_SOURCE_TYPE, LOCAL_SOURCE_TYPE, rel_home
 
 
 @app.command("mv")
@@ -20,10 +21,21 @@ def move_skill(
     new_destination: str = typer.Argument(
         ..., help="New category or filesystem path for the skill"
     ),
+    rename: Optional[str] = typer.Option(None, "--rename", help="Rename the skill"),
     ref_only: bool = typer.Option(
         False,
         "--ref-only",
         help="Only update the lockfile reference, do not move any files",
+    ),
+    to_remote: Optional[str] = typer.Option(
+        None,
+        "--to-remote",
+        help="Convert to GitHub source with specified repo (owner/repo)",
+    ),
+    to_local: bool = typer.Option(
+        False,
+        "--to-local",
+        help="Convert GitHub source to local source (keeps current path)",
     ),
     verbose: bool = False,
 ):
@@ -33,6 +45,8 @@ def move_skill(
     lock = get_skills_lock(config)
 
     repo_key = None
+    skill_name = None
+
     if target in lock.sources:
         repo_key = target
     else:
@@ -40,6 +54,7 @@ def move_skill(
         for r, source in lock.sources.items():
             if target in source.skills:
                 repo_key = r
+                skill_name = target
                 break
 
         if not repo_key:
@@ -57,6 +72,58 @@ def move_skill(
     source = lock.sources[repo_key]
     old_category = source.category or "misc"
     source_type = source.source_type or GITHUB_SOURCE_TYPE
+
+    # Handle renaming
+    if rename:
+        if not skill_name and len(source.skills) == 1:
+            skill_name = source.skills[0]
+
+        if not skill_name:
+            print(
+                f"[red]Cannot rename repository '{target}'. Please specify a specific skill name.[/red]"
+            )
+            raise typer.Exit(code=1)
+
+        # Check if new name already exists in this source
+        if rename in source.skills:
+            print(f"[red]Skill '{rename}' already exists in this source.[/red]")
+            raise typer.Exit(code=1)
+
+        # If it's NOT a single layout, we should rename the folder in source
+        if source.source_layout != "single" and not ref_only:
+            # Find old_dir
+            if source_type == GITHUB_SOURCE_TYPE:
+                storage_base = get_skills_storage_dir()
+                repo_ref = source.repo or repo_key
+                owner, repo_repo = repo_ref.split("/", 1)
+                base_dir = storage_base / old_category / GH_PREFIX / owner / repo_repo
+            else:
+                base_dir = Path(source.source_path or repo_key).expanduser().resolve()
+
+            old_skill_dir = base_dir / skill_name
+            new_skill_dir = base_dir / rename
+
+            if old_skill_dir.exists():
+                if new_skill_dir.exists():
+                    print(
+                        f"[red]Destination {rel_home(new_skill_dir)} already exists. Cannot rename.[/red]"
+                    )
+                    raise typer.Exit(code=1)
+
+                shutil.move(str(old_skill_dir), str(new_skill_dir))
+                if verbose:
+                    print(
+                        f"Renamed directory [cyan]{rel_home(old_skill_dir)}[/cyan] -> [cyan]{rel_home(new_skill_dir)}[/cyan]"
+                    )
+
+        # Update lockfile
+        idx = source.skills.index(skill_name)
+        source.skills[idx] = rename
+        print(
+            f"✅ Renamed skill [magenta]{skill_name}[/magenta] to [green]{rename}[/green]"
+        )
+        target = rename  # For subsequent sync
+        skill_name = rename
 
     # Determine if new_destination is a path or a category
     is_path = "/" in new_destination or new_destination.startswith(".")
@@ -150,6 +217,31 @@ def move_skill(
 
     # Update lockfile
     source.category = new_category
+
+    # Handle source type conversion
+    if to_remote:
+        if "/" not in to_remote:
+            print(
+                f"[red]Invalid repository for --to-remote: {to_remote}. Expected owner/repo.[/red]"
+            )
+            raise typer.Exit(code=1)
+        source.source_type = GITHUB_SOURCE_TYPE
+        source.repo = to_remote
+        print(f"✅ Converted source to [cyan]GitHub ({to_remote})[/cyan]")
+
+    if to_local:
+        if source.source_type == LOCAL_SOURCE_TYPE:
+            print("[yellow]Source is already local.[/yellow]")
+        else:
+            source.source_type = LOCAL_SOURCE_TYPE
+            # Ensure source_path is set to the current location
+            if not source.source_path:
+                source.source_path = str(old_dir)
+            source.repo = None
+            print(
+                f"✅ Converted source to [cyan]local[/cyan] at [magenta]{rel_home(Path(source.source_path))}[/magenta]"
+            )
+
     save_skills_lock(config, lock)
 
     if is_path:

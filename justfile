@@ -24,3 +24,11 @@ typecheck:
 # Run tests
 test:
     uv run pytest
+
+# Serve documentation
+docs-serve:
+    uv run mkdocs serve
+
+# Build documentation
+docs-build:
+    uv run mkdocs build

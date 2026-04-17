@@ -30,7 +30,7 @@ class JupConfig(BaseModel):
 
 
 class SkillSource(BaseModel):
-    repo: str
+    repo: Optional[str] = None
     source_type: str = "github"
     source_path: Optional[str] = None
     source_layout: Optional[str] = None

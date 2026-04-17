@@ -35,6 +35,9 @@ dev = [
     "commitizen>=4.1.0",
     "python-semantic-release>=9.0.0",
     "pre-commit>=4.0.0",
+    "mkdocs>=1.6.1",
+    "mkdocstrings[python]>=1.0.4",
+    "mkdocs-material>=9.7.6",
 ]
 
 [tool.pytest.ini_options]
@@ -59,3 +62,10 @@ match = "main"
 
 [tool.semantic_release.changelog]
 changelog_file = "CHANGELOG.md"
+
+[tool.ruff]
+exclude = ["templates"]
+
+[tool.ty.src]
+include = ["src", "tests"]
+exclude = ["templates/"]

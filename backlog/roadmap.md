@@ -4,15 +4,15 @@
 
 ## Current Backlog
 
-- [ ] **Manage Unmanaged Skills**: Add a way to start managing unmanaged skills discovered by `jup list` (e.g., `jup add <path>`).
-- [ ] **Shortcut Improvements**: Add more intuitive shortcuts for common commands (e.g., `jup up` for `sync --update`).
-- [ ] **Move Skill Location**: Enhance `jup mv` to handle edge cases like renaming skills or moving between local and remote sources.
-- [ ] **Agent Skill Iteration**: Add an agent skill to help iterate on new ideas, roadmap, and specs.
-- [ ] **Expert Engineer Skill**: Add a skill for an expert engineer to analyze the codebase, identify technical debt, and suggest architectural improvements.
-- [ ] **MkDocs Documentation**: Set up MkDocs with automatic package reference generation.
-- [ ] **Python Package Template**: Extract a reusable Python package template from the `jup` repository (using Copier).
-- [ ] **Beta/Prerelease Workflow**: Configure beta/prerelease workflows with `python-semantic-release`.
-- [ ] **Interactive `sync`**: Add an interactive mode for `jup sync` to selectively sync skills.
+- [x] **Manage Unmanaged Skills**: Add a way to start managing unmanaged skills discovered by `jup list` (e.g., `jup add <path>`).
+- [x] **Shortcut Improvements**: Add more intuitive shortcuts for common commands (e.g., `jup up` for `sync --update`).
+- [x] **Move Skill Location**: Enhance `jup mv` to handle edge cases like renaming skills or moving between local and remote sources.
+- [x] **Agent Skill Iteration**: Add an agent skill to help iterate on new ideas, roadmap, and specs.
+- [x] **Expert Engineer Skill**: Add a skill for an expert engineer to analyze the codebase, identify technical debt, and suggest architectural improvements.
+- [x] **MkDocs Documentation**: Set up MkDocs with automatic package reference generation.
+- [x] **Python Package Template**: Extract a reusable Python package template from the `jup` repository (using Copier).
+- [ ] **Beta/Prerelease Workflow**: Configure beta/prerelease workflows with `python-semantic-release`. (Partially configured)
+- [x] **Interactive `sync`**: Add an interactive mode for `jup sync` to selectively sync skills.
 - [ ] **Registry Integration**: Deeper integration with `skills.sh` for better discovery and versioning.
 
 ## Future Ideas 💡
@@ -25,6 +25,7 @@
 
 ## Completed ✅
 
+- [x] Manage Unmanaged Skills (detect and move/import).
 - [x] Modularize `commands.py` into `src/jup/commands/` package.
 - [x] Enhance `jup list` with status flags and unmanaged skills detection.
 - [x] Add `jup list --json` for machine-readable output.
@@ -32,3 +33,8 @@
 - [x] Improve `jup find` search logic for better discovery.
 - [x] Add `jup ls` and `jup rm` shortcuts.
 - [x] Add `jup mv` to move skill category.
+- [x] Add `jup up` as alias for `jup sync --update`.
+- [x] Add interactive mode to `jup sync`.
+- [x] Add MkDocs documentation with auto-API reference.
+- [x] Extract Python package template to `templates/python-pkg`.
+- [x] Add `jup-architect` and `jup-roadmap` skills.
