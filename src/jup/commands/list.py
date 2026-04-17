@@ -11,11 +11,13 @@ from ..config import (
     get_config,
     get_scope_dir,
     get_skills_lock,
+    get_skills_storage_dir,
 )
 from ..main import app
 from .utils import (
-    LOCAL_SOURCE_TYPE,
+    GH_PREFIX,
     GITHUB_SOURCE_TYPE,
+    LOCAL_SOURCE_TYPE,
     rel_home,
 )
 
@@ -78,8 +80,44 @@ def list_skills(
         source_type = source.source_type or GITHUB_SOURCE_TYPE
         repo_ref = source.repo or source_key
 
+        # Calculate source storage dir for this source
+        storage_dir: Path | None = None
+        local_source_root: Path | None = None
+
+        if source_type == LOCAL_SOURCE_TYPE:
+            local_path_str = source.source_path or source_key
+            local_source_root = Path(local_path_str).expanduser().resolve()
+        else:
+            if source.source_path:
+                storage_dir = Path(source.source_path).expanduser().resolve()
+            else:
+                if "/" in repo_ref:
+                    owner, repo_name = repo_ref.split("/", 1)
+                    storage_dir = (
+                        get_skills_storage_dir()
+                        / str(source.category or "misc")
+                        / GH_PREFIX
+                        / owner
+                        / repo_name
+                    )
+
         for skill_name in source.skills:
             managed_skill_names.add(skill_name)
+
+            # Check source existence
+            skill_src_dir = None
+            if source_type == LOCAL_SOURCE_TYPE:
+                if local_source_root:
+                    skill_src_dir = (
+                        local_source_root
+                        if source.source_layout == "single"
+                        else local_source_root / skill_name
+                    )
+            elif storage_dir:
+                skill_src_dir = storage_dir / skill_name
+
+            source_exists = skill_src_dir.exists() if skill_src_dir else False
+
             status = {}
             for agent_name, agent_dir in configured_agents:
                 skill_path = agent_dir / skill_name
@@ -87,10 +125,17 @@ def list_skills(
                     "path": format_location_path(agent_dir),
                     "exists": False,
                     "is_symlink": False,
+                    "is_broken": False,
                 }
-                if skill_path.exists() or skill_path.is_symlink():
+
+                if skill_path.is_symlink():
+                    info["is_symlink"] = True
+                    if not skill_path.exists():
+                        info["is_broken"] = True
+                    else:
+                        info["exists"] = True
+                elif skill_path.exists():
                     info["exists"] = True
-                    info["is_symlink"] = skill_path.is_symlink()
 
                 status[agent_name] = info
 
@@ -99,6 +144,10 @@ def list_skills(
                     "name": skill_name,
                     "repo": repo_ref,
                     "source_type": source_type,
+                    "source_exists": source_exists,
+                    "source_path": rel_home(skill_src_dir)
+                    if skill_src_dir
+                    else "unknown",
                     "status": status,
                     "last_updated": source.last_updated or "-",
                 }
@@ -138,8 +187,20 @@ def list_skills(
 
     for skill in installed_skills_data:
         status_lines = []
+        if not skill["source_exists"]:
+            status_lines.append(
+                f"[bold red]⚠️ Source Missing[/bold red] [dim]({skill['source_path']})[/dim]"
+            )
+
         for agent_name, info in skill["status"].items():
-            if info["exists"]:
+            if info["is_broken"]:
+                color = "red"
+                icon = "❌"
+                symbol = "🔗"
+                status_lines.append(
+                    f"[{color}]{icon} {symbol} {agent_name} (Broken Link)[/{color}] [dim]({info['path']})[/dim]"
+                )
+            elif info["exists"]:
                 color = "green"
                 icon = "✅"
                 symbol = "🔗" if info["is_symlink"] else "📁"
