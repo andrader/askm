@@ -60,6 +60,11 @@ upload_to_release = true
 [tool.semantic_release.branches.main]
 match = "main"
 
+[tool.semantic_release.branches.beta]
+match = "beta"
+prerelease = true
+prerelease_token = "beta"
+
 [tool.semantic_release.changelog]
 changelog_file = "CHANGELOG.md"
 
