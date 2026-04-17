@@ -220,11 +220,17 @@ def list_skills(
 
         repo_display = skill["repo"]
         if skill["source_type"] == GITHUB_SOURCE_TYPE:
-            repo_display = Text(
+            repo_text = Text("🌐 ", style="white")
+            repo_text.append(
                 repo_display, style=f"cyan link https://github.com/{repo_display}"
             )
+            repo_display = repo_text
         else:
-            repo_display = rel_home(Path(repo_display).expanduser().resolve())
+            repo_text = Text("🏠 ", style="white")
+            repo_text.append(
+                rel_home(Path(repo_display).expanduser().resolve()), style="cyan"
+            )
+            repo_display = repo_text
 
         table.add_row(
             skill["name"],
@@ -236,7 +242,7 @@ def list_skills(
     if installed_skills_data:
         print(table)
         print(
-            "\n[dim]Legend: ❌ Missing/Broken | 🔗 Symlink | 📁 Directory | ⚠️ Source Gone[/dim]"
+            "\n[dim]Legend: 🏠 Local | 🌐 GitHub | ❌ Missing/Broken | 🔗 Symlink | 📁 Directory | ⚠️ Source Gone[/dim]"
         )
     elif not only_local and not remote:
         print("No managed skills installed.")
