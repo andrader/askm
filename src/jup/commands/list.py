@@ -190,21 +190,16 @@ def list_skills(
         for agent_name, info in skill["status"].items():
             symbol = "🔗" if info["is_symlink"] else "📁"
             if info["is_broken"]:
-                color = "red"
-                icon = "❌ "
                 status_lines.append(
-                    f"[{color}]{icon}{symbol} {agent_name}[/{color}] [dim]({info['path']})[/dim]"
+                    f"[red]{symbol} {agent_name}[/red] [dim]({info['path']})[/dim] [bold red]💔[/bold red]"
                 )
             elif info["exists"]:
-                color = "green"
                 status_lines.append(
-                    f"[{color}]{symbol} {agent_name}[/{color}] [dim]({info['path']})[/dim]"
+                    f"[green]{symbol} {agent_name}[/green] [dim]({info['path']})[/dim]"
                 )
             else:
-                color = "red"
-                icon = "❌ "
                 status_lines.append(
-                    f"[{color}]{icon}{symbol} {agent_name}[/{color}] [dim]({info['path']})[/dim]"
+                    f"[red]{symbol} {agent_name}[/red] [dim]({info['path']})[/dim] [bold red]❌[/bold red]"
                 )
 
         status_str = "\n".join(status_lines)
@@ -214,18 +209,24 @@ def list_skills(
             last_updated = last_updated.split("T")[0]
 
         repo_display = skill["repo"]
-        source_gone_symbol = "⚠️ " if not skill["source_exists"] else ""
+        source_gone_symbol = (
+            " [bold red]⚠️[/bold red]" if not skill["source_exists"] else ""
+        )
         if skill["source_type"] == GITHUB_SOURCE_TYPE:
-            repo_text = Text(f"{source_gone_symbol}🌐 ", style="white")
+            repo_text = Text("🌐 ", style="white")
             repo_text.append(
                 repo_display, style=f"cyan link https://github.com/{repo_display}"
             )
+            if source_gone_symbol:
+                repo_text.append(" ⚠️", style="bold red")
             repo_display = repo_text
         else:
-            repo_text = Text(f"{source_gone_symbol}🏠 ", style="white")
+            repo_text = Text("🏠 ", style="white")
             repo_text.append(
                 rel_home(Path(repo_display).expanduser().resolve()), style="cyan"
             )
+            if source_gone_symbol:
+                repo_text.append(" ⚠️", style="bold red")
             repo_display = repo_text
 
         table.add_row(
@@ -238,7 +239,7 @@ def list_skills(
     if installed_skills_data:
         print(table)
         print(
-            "\n[dim]Legend: 🏠 Local | 🌐 GitHub | ❌ Missing/Broken | 🔗 Symlink | 📁 Directory | ⚠️ Source Gone[/dim]"
+            "\n[dim]Legend: 🏠 Local | 🌐 GitHub | 🔗 Symlink | 📁 Directory | ❌ Missing | 💔 Broken | ⚠️ Source Gone[/dim]"
         )
     elif not only_local and not remote:
         print("No managed skills installed.")
