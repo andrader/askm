@@ -179,11 +179,11 @@ def list_skills(
         return
 
     # Render Table
-    table = Table(title="Installed Skills")
-    table.add_column("Skill Name", style="magenta", no_wrap=True)
-    table.add_column("Repo/Origin", style="cyan")
-    table.add_column("Location / Status", style="green")
-    table.add_column("Last Updated", style="white")
+    table = Table(title="Installed Skills", show_lines=True)
+    table.add_column("Skill Name", style="magenta", no_wrap=True, vertical="top")
+    table.add_column("Repo/Origin", style="cyan", vertical="top")
+    table.add_column("Location / Status", style="green", vertical="top")
+    table.add_column("Last Updated", style="white", vertical="top")
 
     for skill in installed_skills_data:
         status_lines = []
