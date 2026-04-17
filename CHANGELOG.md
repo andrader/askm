@@ -1,6 +1,46 @@
 # CHANGELOG
 
 
+## v0.10.0 (2026-04-17)
+
+### Chores
+
+- Ignore docs/superpowers and update gitignore
+  ([`65b9517`](https://github.com/andrader/jup/commit/65b9517dc3b2e5318cfec72893c51c2ec306dbff))
+
+### Documentation
+
+- Add jup skill definition
+  ([`43aabb2`](https://github.com/andrader/jup/commit/43aabb27add52268a96d2306d8362e596a87f8cd))
+
+- Create roadmap, architect skill, and update backlog
+  ([`ffba2a9`](https://github.com/andrader/jup/commit/ffba2a9e178792b2a60d16fce668bb06d9938d05))
+
+- Implement jup-roadmap and jup-architect skills with TDD process
+  ([`217e718`](https://github.com/andrader/jup/commit/217e718d6a58d327b524d4dcd1085830e3ff63ab))
+
+### Features
+
+- Add jup ls and rm shortcuts, and jup mv command
+  ([`96f0dc1`](https://github.com/andrader/jup/commit/96f0dc1da9497c2c0b0adc005b43f4160491ab88))
+
+- Improve remote skill search logic
+  ([`2762fab`](https://github.com/andrader/jup/commit/2762faba885e40195d8c69378ee4ac2b2fe311f1))
+
+- **mv**: Support moving skills to arbitrary filesystem paths
+  ([`0e71707`](https://github.com/andrader/jup/commit/0e717072e57050dc4b5aad8ccc56a42df50b9ddd))
+
+### Refactoring
+
+- Modularize commands into jup.commands package
+  ([`1256963`](https://github.com/andrader/jup/commit/125696361fb8ba442cf71d38a985c411d859dcbe))
+
+### Testing
+
+- Update test mocks for modularized commands package
+  ([`2681379`](https://github.com/andrader/jup/commit/268137945d7e3c508a26703decb1392e69e793d8))
+
+
 ## v0.9.1 (2026-04-16)
 
 ### Bug Fixes
