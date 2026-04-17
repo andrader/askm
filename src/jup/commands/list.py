@@ -190,9 +190,7 @@ def list_skills(
         for agent_name, info in skill["status"].items():
             symbol = "🔗" if info["is_symlink"] else "📁"
             if info["is_broken"]:
-                status_lines.append(
-                    f"[red]{symbol} {agent_name} ({info['path']})[/red] [bold red]⛓️‍💥[/bold red]"
-                )
+                status_lines.append(f"[red]⛓️‍💥 {agent_name} ({info['path']})[/red]")
             elif info["exists"]:
                 status_lines.append(
                     f"[green]{symbol} {agent_name}[/green] [dim]({info['path']})[/dim]"
