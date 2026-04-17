@@ -21,6 +21,7 @@ from .utils import (
 
 
 @app.command("list")
+@app.command("ls", hidden=True)
 def list_skills(
     only_local: bool = typer.Option(
         False, "--only-local", help="Show only local skills"
