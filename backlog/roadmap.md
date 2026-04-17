@@ -4,6 +4,7 @@
 
 ## Current Backlog
 
+- [ ] **Manage Unmanaged Skills**: Add a way to start managing unmanaged skills discovered by `jup list` (e.g., `jup add <path>`).
 - [ ] **Shortcut Improvements**: Add more intuitive shortcuts for common commands (e.g., `jup up` for `sync --update`).
 - [ ] **Move Skill Location**: Enhance `jup mv` to handle edge cases like renaming skills or moving between local and remote sources.
 - [ ] **Agent Skill Iteration**: Add an agent skill to help iterate on new ideas, roadmap, and specs.
