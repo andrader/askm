@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - release
   workflow_dispatch:
 
 jobs:
@@ -39,4 +40,19 @@ jobs:
         if: steps.release.outputs.released == 'true'
         run: |
           uv build
-          uv publish
+          # uv publish # Uncomment when PyPI is ready
+
+      - name: Update Floating Tags
+        if: steps.release.outputs.released == 'true'
+        run: |
+          VERSION="${{ steps.release.outputs.tag }}"
+          
+          # Always update latest tag
+          git tag -f latest "$VERSION"
+          git push -f origin latest
+
+          # Only update stable if on the release branch (stable version)
+          if [ "${{ github.ref_name }}" == "release" ]; then
+            git tag -f stable "$VERSION"
+            git push -f origin stable
+          fi
