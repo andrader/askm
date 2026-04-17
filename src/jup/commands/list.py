@@ -191,7 +191,7 @@ def list_skills(
             symbol = "🔗" if info["is_symlink"] else "📁"
             if info["is_broken"]:
                 status_lines.append(
-                    f"[red]{symbol} {agent_name}[/red] [dim]({info['path']})[/dim] [bold red]💔[/bold red]"
+                    f"[red]{symbol} {agent_name} ({info['path']})[/red] [bold red]💔[/bold red]"
                 )
             elif info["exists"]:
                 status_lines.append(
@@ -199,7 +199,7 @@ def list_skills(
                 )
             else:
                 status_lines.append(
-                    f"[red]{symbol} {agent_name}[/red] [dim]({info['path']})[/dim] [bold red]❌[/bold red]"
+                    f"[red]{symbol} {agent_name} ({info['path']})[/red] [bold red]❌[/bold red]"
                 )
 
         status_str = "\n".join(status_lines)
