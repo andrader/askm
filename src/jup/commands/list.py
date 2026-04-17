@@ -237,6 +237,9 @@ def list_skills(
 
     if installed_skills_data:
         print(table)
+        print(
+            "\n[dim]Legend: ✅ Installed | ❌ Missing/Broken | 🔗 Symlink | 📁 Directory | ⚠️ Source Gone[/dim]"
+        )
     elif not only_local and not remote:
         print("No managed skills installed.")
 
