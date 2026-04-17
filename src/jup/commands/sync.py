@@ -153,6 +153,17 @@ def sync_skills(verbose: bool = False):
             for target_base in targets:
                 target_skill_dir = target_base / skill
 
+                # SAFETY CHECK: Don't touch if target is the same as source
+                if (
+                    target_skill_dir.exists()
+                    and target_skill_dir.resolve() == skill_src_dir.resolve()
+                ):
+                    if verbose_state.verbose:
+                        print(
+                            f"✅ [green]{skill}[/green] is already at source location [cyan]{rel_home(target_skill_dir)}[/cyan], skipping."
+                        )
+                    continue
+
                 # Clean up existing managed target
                 if target_skill_dir.exists() or target_skill_dir.is_symlink():
                     if target_skill_dir.is_symlink():
