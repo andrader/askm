@@ -2,13 +2,38 @@
 
 `jup` is a lightweight Python-based command-line tool designed to manage and synchronize "agent skills" across various AI assistant directories (e.g., Gemini, Copilot, Claude). It allows users to install skills from GitHub repositories or local directories, keeping them organized via a lockfile and syncing them to target locations using symlinks or file copies.
 
+ALWAYS use subagents for independent steps.
+ALWAYS follow the development workflow outlined below to ensure consistency, maintainability, and quality across the codebase. This workflow is designed to encourage thoughtful implementation, thorough testing, and clear documentation.
+
+# dev workflow (better rewrite this)
+- ask clarifying questions
+- propose 3 approaches with pros and cons
+- ask the user choice
+- create implementation plan
+- break plan in small steps
+- new branch, commit often with clear messages
+- implement changes. use subagents whenever possible.
+- adversarial testing: launch 3 parallel adversarial subagents to find implementation problems
+- reflect: are there any edge cases?
+- does it require new tests? add them, run them
+- does it require docs updates? update docs: all jup readme+ screenshots
+- update backlog/
+- commit in new branch, push, make pr
+
+jup backlog
+- chores:
+	- add mkdocs docs + auto doc pkg reference
+	- extract a python pkg template from jup repo, cookiecutter/copier...? (maybe copier is better)
+    - configure beta or prerealease workflow with python-semantic-release
+
+
 ## Project Overview
 
 *   **Purpose:** Centralized management of AI agent skills/tools.
 *   **Main Technologies:** Python 3.12+, `typer`, `pydantic` (v2), `rich`, and `uv`.
 *   **Architecture:**
     *   `src/jup/main.py`: Main entry point and configuration sub-commands (`jup config ...`).
-    *   `src/jup/commands.py`: Core CLI commands implementation (`add`, `remove`, `sync`, `list`).
+    *   `src/jup/commands/`: Package containing core CLI commands implementation (`add`, `remove`, `sync`, `list`, `show`, `find`).
     *   `src/jup/config.py`: Handles `~/.jup` persistence, config files, and the skills lockfile.
     *   `src/jup/models.py`: Defines Pydantic models for configuration, skill sources, and the `DEFAULT_AGENTS` registry.
     *   **Internal Storage:** Skills are cached/stored in `~/.jup/skills/` before being synced.
