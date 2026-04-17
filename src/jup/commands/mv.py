@@ -20,6 +20,9 @@ def move_skill(
     new_destination: str = typer.Argument(
         ..., help="New category or filesystem path for the skill"
     ),
+    no_move: bool = typer.Option(
+        False, "--no-move", help="Only update the lockfile, do not move any files"
+    ),
     verbose: bool = False,
 ):
     """Move a skill or repository to a new category or filesystem path."""
@@ -77,21 +80,40 @@ def move_skill(
 
         if is_path:
             new_dir = Path(new_destination).expanduser().resolve()
-            # If it's a directory that already exists and doesn't look like the repo name,
-            # maybe we should append the repo name?
-            # But the user might want to move it TO that exact path.
-            # Standard 'mv' behavior: if dest is a dir, move src INTO it.
-            if new_dir.is_dir():
+            if not no_move and new_dir.is_dir():
                 new_dir = new_dir / repo_name
         else:
             new_dir = storage_base / new_category / GH_PREFIX / owner / repo_name
+    else:
+        # Local source
+        if source.source_path:
+            old_dir = Path(source.source_path).expanduser().resolve()
+        else:
+            # Fallback to repo key if source_path is None (shouldn't happen for local)
+            old_dir = Path(repo_key).expanduser().resolve()
 
+        if is_path:
+            new_dir = Path(new_destination).expanduser().resolve()
+            if not no_move and new_dir.is_dir() and old_dir.name:
+                new_dir = new_dir / old_dir.name
+        else:
+            # If moving to a category, we just update the category metadata
+            new_dir = old_dir
+
+    if not no_move:
         if old_dir.exists():
             if old_dir.resolve() == new_dir.resolve():
-                print(f"Skill is already at [cyan]{rel_home(new_dir)}[/cyan].")
-                return
+                if not is_path and source.category != new_category:
+                    # Just updating category
+                    pass
+                else:
+                    print(f"Skill is already at [cyan]{rel_home(new_dir)}[/cyan].")
+                    # Even if path is same, we might need to update category
+                    source.category = new_category
+                    save_skills_lock(config, lock)
+                    return
 
-            if new_dir.exists():
+            if new_dir.exists() and old_dir.resolve() != new_dir.resolve():
                 print(
                     f"[yellow]Warning: Target directory {rel_home(new_dir)} already exists. Overwriting...[/yellow]"
                 )
@@ -100,24 +122,29 @@ def move_skill(
                 else:
                     new_dir.unlink()
 
-            new_dir.parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(old_dir), str(new_dir))
-            if verbose:
-                print(
-                    f"Moved [cyan]{rel_home(old_dir)}[/cyan] to [cyan]{rel_home(new_dir)}[/cyan]"
-                )
+            if old_dir.resolve() != new_dir.resolve():
+                new_dir.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(old_dir), str(new_dir))
+                if verbose:
+                    print(
+                        f"Moved [cyan]{rel_home(old_dir)}[/cyan] to [cyan]{rel_home(new_dir)}[/cyan]"
+                    )
         else:
             print(
                 f"[yellow]Warning: Source directory {rel_home(old_dir)} not found. Only updating lockfile.[/yellow]"
             )
+    else:
+        if verbose:
+            print(
+                f"Skipping file move, only updating lockfile to [cyan]{rel_home(new_dir)}[/cyan]"
+            )
 
-        # Update source_path: if it's in the default storage, we can keep it None or update it.
-        # If it's a custom path, we MUST set it.
-        if is_path:
-            source.source_path = str(new_dir)
-        else:
-            # If moving back to a category, clear source_path to use default logic
-            source.source_path = None
+    # Update source_path
+    if is_path:
+        source.source_path = str(new_dir)
+    elif source_type == GITHUB_SOURCE_TYPE:
+        # If moving Github back to a category, clear source_path to use default logic
+        source.source_path = None
 
     # Update lockfile
     source.category = new_category
