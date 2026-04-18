@@ -36,6 +36,8 @@ dev = [
     "python-semantic-release>=9.0.0",
     "pre-commit>=4.0.0",
     "zensical>=0.0.30",
+    "mkdocstrings>=1.0.4",
+    "mkdocstrings-python>=2.0.3",
 ]
 
 [tool.pytest.ini_options]
