@@ -1,5 +1,6 @@
 site_name: jup
 site_description: Agent Skills Manager
+site_url: https://andrader.github.io/jup/
 repo_url: https://github.com/andrader/jup
 theme:
   name: material
