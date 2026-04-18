@@ -1,3 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://andrader.github.io/jup/</loc>
+         <lastmod>2026-04-18</lastmod>
+    </url>
+    <url>
+         <loc>https://andrader.github.io/jup/jup-vs-npx-skills/</loc>
+         <lastmod>2026-04-18</lastmod>
+    </url>
+    <url>
+         <loc>https://andrader.github.io/jup/reference/</loc>
+         <lastmod>2026-04-18</lastmod>
+    </url>
+    <url>
+         <loc>https://andrader.github.io/jup/superpowers/plans/2026-04-16-jup-enhancements/</loc>
+         <lastmod>2026-04-18</lastmod>
+    </url>
+    <url>
+         <loc>https://andrader.github.io/jup/superpowers/plans/2026-04-16-jup-mv-path/</loc>
+         <lastmod>2026-04-18</lastmod>
+    </url>
+    <url>
+         <loc>https://andrader.github.io/jup/superpowers/plans/2026-04-17-manage-unmanaged-skills/</loc>
+         <lastmod>2026-04-18</lastmod>
+    </url>
 </urlset>
