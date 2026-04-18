@@ -1,0 +1,19 @@
+[project]
+site_name = "jup"
+site_description = "Agent Skills Manager"
+site_url = "https://andrader.github.io/jup/"
+
+nav = [
+    { "Home" = "index.md" },
+    { "Reference" = "reference.md" },
+    { "Comparison with npx" = "jup-vs-npx-skills.md" }
+]
+
+[project.theme]
+features = [
+    "navigation.sections",
+    "navigation.expand",
+    "content.code.copy",
+    "search.suggest",
+    "search.highlight"
+]
