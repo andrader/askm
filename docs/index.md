@@ -20,3 +20,4 @@ jup sync
 - **Sync everywhere**: Manage skills for Claude, ChatGPT, and other agents in one place.
 - **Easy discovery**: Find new skills on GitHub.
 - **Interactive**: Selectively sync only what you need.
+<!-- Build trigger -->
