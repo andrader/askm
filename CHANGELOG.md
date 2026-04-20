@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.12.0-beta.4 (2026-04-20)
+
+### Features
+
+- Rename "agent" to "harness" and ".agents" terminology cleanup
+  ([`9d60b06`](https://github.com/andrader/jup/commit/9d60b06d0d1928175b4f340b8cb47a1adff1e364))
+
+
 ## v0.12.0-beta.3 (2026-04-20)
 
 ### Bug Fixes
