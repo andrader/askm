@@ -2,7 +2,7 @@ import pytest
 from typer.testing import CliRunner
 from unittest.mock import patch
 from jup.main import app
-from jup.models import AgentConfig
+from jup.models import HarnessConfig
 
 runner = CliRunner()
 
@@ -12,9 +12,9 @@ def mock_jup_dir(tmp_path):
     jup_dir = tmp_path / ".jup"
     jup_dir.mkdir()
 
-    mock_agents = {
-        "default": AgentConfig(
-            name="default",
+    mock_harnesses = {
+        ".agents": HarnessConfig(
+            name=".agents",
             global_location=str(tmp_path / "global"),
             local_location=str(tmp_path / "local"),
         )
@@ -22,8 +22,8 @@ def mock_jup_dir(tmp_path):
 
     with patch("jup.config.JUP_CONFIG_DIR", jup_dir):
         with patch("jup.config.CONFIG_FILE", jup_dir / "config.json"):
-            with patch("jup.config.DEFAULT_AGENTS", mock_agents):
-                with patch("jup.models.DEFAULT_AGENTS", mock_agents):
+            with patch("jup.config.DEFAULT_HARNESSES", mock_harnesses):
+                with patch("jup.models.DEFAULT_HARNESSES", mock_harnesses):
                     yield jup_dir
 
 
@@ -42,21 +42,21 @@ def test_config_set_scope(mock_jup_dir):
     assert result.stdout.strip() == "local"
 
 
-def test_config_set_agents(mock_jup_dir):
-    result = runner.invoke(app, ["config", "set", "agents", "gemini,copilot"])
+def test_config_set_harnesses(mock_jup_dir):
+    result = runner.invoke(app, ["config", "set", "harnesses", "gemini,copilot"])
     assert result.exit_code == 0
-    assert "Set agents to gemini,copilot" in result.stdout
+    assert "Set harnesses to gemini,copilot" in result.stdout
 
-    result = runner.invoke(app, ["config", "get", "agents"])
+    result = runner.invoke(app, ["config", "get", "harnesses"])
     assert result.stdout.strip() == "gemini,copilot"
 
 
-def test_config_unset_agents(mock_jup_dir):
-    runner.invoke(app, ["config", "set", "agents", "gemini"])
-    result = runner.invoke(app, ["config", "unset", "agents"])
+def test_config_unset_harnesses(mock_jup_dir):
+    runner.invoke(app, ["config", "set", "harnesses", "gemini"])
+    result = runner.invoke(app, ["config", "unset", "harnesses"])
     assert result.exit_code == 0
 
-    result = runner.invoke(app, ["config", "get", "agents"])
+    result = runner.invoke(app, ["config", "get", "harnesses"])
     assert result.stdout.strip() == "none"
 
 

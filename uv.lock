@@ -328,7 +328,7 @@ wheels = [
 
 [[package]]
 name = "jup"
-version = "0.12.0b1"
+version = "0.13.0b1"
 source = { editable = "." }
 dependencies = [
     { name = "prompt-toolkit" },

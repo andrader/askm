@@ -2,7 +2,7 @@ import pytest
 from typer.testing import CliRunner
 from unittest.mock import patch
 from jup.main import app
-from jup.models import AgentConfig
+from jup.models import HarnessConfig
 
 runner = CliRunner()
 
@@ -12,9 +12,9 @@ def mock_jup_dir(tmp_path):
     jup_dir = tmp_path / ".jup"
     jup_dir.mkdir()
 
-    mock_agents = {
-        "default": AgentConfig(
-            name="default",
+    mock_harnesses = {
+        ".agents": HarnessConfig(
+            name=".agents",
             global_location=str(tmp_path / "global"),
             local_location=str(tmp_path / "local"),
         )
@@ -22,23 +22,22 @@ def mock_jup_dir(tmp_path):
 
     with patch("jup.config.JUP_CONFIG_DIR", jup_dir):
         with patch("jup.config.CONFIG_FILE", jup_dir / "config.json"):
-            with patch("jup.config.DEFAULT_AGENTS", mock_agents):
-                with patch("jup.models.DEFAULT_AGENTS", mock_agents):
+            with patch("jup.config.DEFAULT_HARNESSES", mock_harnesses):
+                with patch("jup.models.DEFAULT_HARNESSES", mock_harnesses):
                     yield jup_dir
 
 
-def test_agent_list_default(mock_jup_dir):
-    result = runner.invoke(app, ["agent", "list"])
+def test_harness_list_default(mock_jup_dir):
+    result = runner.invoke(app, ["harness", "list"])
     assert result.exit_code == 0
-    assert "default" in result.stdout
-    assert "default" in result.stdout
+    assert ".agents" in result.stdout
 
 
-def test_agent_add_custom(mock_jup_dir):
+def test_harness_add_custom(mock_jup_dir):
     result = runner.invoke(
         app,
         [
-            "agent",
+            "harness",
             "add",
             "custom",
             "--global-location",
@@ -48,18 +47,17 @@ def test_agent_add_custom(mock_jup_dir):
         ],
     )
     assert result.exit_code == 0
-    assert "Added custom agent provider: custom" in result.stdout
+    assert "Added custom harness provider: custom" in result.stdout
 
-    result = runner.invoke(app, ["agent", "list"])
+    result = runner.invoke(app, ["harness", "list"])
     assert "custom" in result.stdout
-    assert "custom" in result.stdout
 
 
-def test_agent_add_duplicate(mock_jup_dir):
+def test_harness_add_duplicate(mock_jup_dir):
     runner.invoke(
         app,
         [
-            "agent",
+            "harness",
             "add",
             "custom",
             "--global-location",
@@ -71,7 +69,7 @@ def test_agent_add_duplicate(mock_jup_dir):
     result = runner.invoke(
         app,
         [
-            "agent",
+            "harness",
             "add",
             "custom",
             "--global-location",
@@ -81,14 +79,14 @@ def test_agent_add_duplicate(mock_jup_dir):
         ],
     )
     assert result.exit_code == 1
-    assert "Agent 'custom' already exists." in result.stdout
+    assert "Harness 'custom' already exists." in result.stdout
 
 
-def test_agent_edit_custom(mock_jup_dir):
+def test_harness_edit_custom(mock_jup_dir):
     runner.invoke(
         app,
         [
-            "agent",
+            "harness",
             "add",
             "custom",
             "--global-location",
@@ -98,28 +96,28 @@ def test_agent_edit_custom(mock_jup_dir):
         ],
     )
     result = runner.invoke(
-        app, ["agent", "edit", "custom", "--local-location", "/tmp/new-local"]
+        app, ["harness", "edit", "custom", "--local-location", "/tmp/new-local"]
     )
     assert result.exit_code == 0
-    assert "Updated custom agent provider: custom" in result.stdout
+    assert "Updated custom harness provider: custom" in result.stdout
 
-    result = runner.invoke(app, ["agent", "list"])
+    result = runner.invoke(app, ["harness", "list"])
     assert "/tmp/new-local" in result.stdout
 
 
-def test_agent_edit_default_fails(mock_jup_dir):
+def test_harness_edit_default_fails(mock_jup_dir):
     result = runner.invoke(
-        app, ["agent", "edit", "default", "--local-location", "/tmp/new-local"]
+        app, ["harness", "edit", ".agents", "--local-location", "/tmp/new-local"]
     )
     assert result.exit_code == 1
-    assert "Cannot edit default agent 'default'." in result.stdout
+    assert "Cannot edit default harness '.agents'." in result.stdout
 
 
-def test_agent_remove_custom(mock_jup_dir):
+def test_harness_remove_custom(mock_jup_dir):
     runner.invoke(
         app,
         [
-            "agent",
+            "harness",
             "add",
             "custom",
             "--global-location",
@@ -128,15 +126,15 @@ def test_agent_remove_custom(mock_jup_dir):
             "/tmp/local",
         ],
     )
-    result = runner.invoke(app, ["agent", "remove", "custom"])
+    result = runner.invoke(app, ["harness", "remove", "custom"])
     assert result.exit_code == 0
-    assert "Removed custom agent provider: custom" in result.stdout
+    assert "Removed custom harness provider: custom" in result.stdout
 
-    result = runner.invoke(app, ["agent", "list"])
+    result = runner.invoke(app, ["harness", "list"])
     assert "custom" not in result.stdout
 
 
-def test_agent_remove_default_fails(mock_jup_dir):
-    result = runner.invoke(app, ["agent", "remove", "default"])
+def test_harness_remove_default_fails(mock_jup_dir):
+    result = runner.invoke(app, ["harness", "remove", ".agents"])
     assert result.exit_code == 1
-    assert "Cannot remove default agent 'default'." in result.stdout
+    assert "Cannot remove default harness '.agents'." in result.stdout

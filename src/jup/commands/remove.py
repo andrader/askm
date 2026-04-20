@@ -5,7 +5,7 @@ import typer
 from rich import print
 
 from ..config import (
-    get_all_agents,
+    get_all_harnesses,
     get_config,
     get_scope_dir,
     get_skills_lock,
@@ -61,14 +61,14 @@ def remove_skill(
     scope_dir = get_scope_dir(config)
     default_skills_dir = scope_dir
     targets.append(default_skills_dir)
-    all_agents = get_all_agents(config)
-    for agent_name in config.agents:
-        if agent_name in all_agents:
-            agent = all_agents[agent_name]
+    all_harnesses = get_all_harnesses(config)
+    for harness_name in config.harnesses:
+        if harness_name in all_harnesses:
+            harness = all_harnesses[harness_name]
             loc = (
-                agent.local_location
+                harness.local_location
                 if config.scope == "local"
-                else agent.global_location
+                else harness.global_location
             )
             targets.append(Path(loc).expanduser().resolve())
 

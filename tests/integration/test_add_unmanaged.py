@@ -6,15 +6,15 @@ from jup.commands.utils import LOCAL_SOURCE_TYPE
 runner = CliRunner()
 
 
-def test_add_detects_and_moves_agent_dir_source(tmp_path, monkeypatch):
-    # Setup mock home and agent dir
+def test_add_detects_and_moves_harness_dir_source(tmp_path, monkeypatch):
+    # Setup mock home and harness dir
     fake_home = tmp_path / "home"
     fake_home.mkdir()
-    agent_dir = fake_home / ".agents" / "skills"
-    agent_dir.mkdir(parents=True)
+    harness_dir = fake_home / ".agents" / "skills"
+    harness_dir.mkdir(parents=True)
 
-    # Create a skill inside the agent dir
-    skill_dir = agent_dir / "unmanaged-skill"
+    # Create a skill inside the harness dir
+    skill_dir = harness_dir / "unmanaged-skill"
     skill_dir.mkdir()
     (skill_dir / "SKILL.md").write_text("info")
 
@@ -22,7 +22,7 @@ def test_add_detects_and_moves_agent_dir_source(tmp_path, monkeypatch):
     # We also need to point JUP_CONFIG_DIR if it's based on Path.home()
     # In src/jup/config.py: JUP_CONFIG_DIR = Path.home() / ".jup"
 
-    # Mock agent location to our tmp path
+    # Mock harness location to our tmp path
     # We need to ensure the config uses our fake_home
     # Since jup.config.JUP_CONFIG_DIR is defined at module level,
     # we might need to monkeypatch it if it was already imported.
@@ -30,13 +30,13 @@ def test_add_detects_and_moves_agent_dir_source(tmp_path, monkeypatch):
 
     monkeypatch.setattr(jup.config, "JUP_CONFIG_DIR", fake_home / ".jup")
 
-    # Set up config with the agent dir
+    # Set up config with the harness dir
     config = get_config()
-    from jup.models import AgentConfig
+    from jup.models import HarnessConfig
 
-    config.custom_agents["default"] = AgentConfig(
-        name="default",
-        global_location=str(agent_dir),
+    config.custom_harnesses[".agents"] = HarnessConfig(
+        name=".agents",
+        global_location=str(harness_dir),
         local_location="./.agents/skills",
     )
     jup.config.save_config(config)
@@ -47,7 +47,7 @@ def test_add_detects_and_moves_agent_dir_source(tmp_path, monkeypatch):
     result = runner.invoke(app, ["add", str(skill_dir)], input="y\n")
 
     assert result.exit_code == 0
-    assert "Source is inside an agent directory" in result.stdout
+    assert "Source is inside a harness directory" in result.stdout
     assert "Moving to" in result.stdout
 
     # Verify it moved
@@ -62,15 +62,15 @@ def test_add_detects_and_moves_agent_dir_source(tmp_path, monkeypatch):
     assert lock.sources[str(storage_dir)].source_type == LOCAL_SOURCE_TYPE
 
 
-def test_add_detects_but_keeps_agent_dir_source(tmp_path, monkeypatch):
-    # Setup mock home and agent dir
+def test_add_detects_but_keeps_harness_dir_source(tmp_path, monkeypatch):
+    # Setup mock home and harness dir
     fake_home = tmp_path / "home"
     fake_home.mkdir()
-    agent_dir = fake_home / ".agents" / "skills"
-    agent_dir.mkdir(parents=True)
+    harness_dir = fake_home / ".agents" / "skills"
+    harness_dir.mkdir(parents=True)
 
-    # Create a skill inside the agent dir
-    skill_dir = agent_dir / "unmanaged-skill"
+    # Create a skill inside the harness dir
+    skill_dir = harness_dir / "unmanaged-skill"
     skill_dir.mkdir()
     (skill_dir / "SKILL.md").write_text("info")
 
@@ -80,11 +80,11 @@ def test_add_detects_but_keeps_agent_dir_source(tmp_path, monkeypatch):
     monkeypatch.setattr(jup.config, "JUP_CONFIG_DIR", fake_home / ".jup")
 
     config = get_config()
-    from jup.models import AgentConfig
+    from jup.models import HarnessConfig
 
-    config.custom_agents["default"] = AgentConfig(
-        name="default",
-        global_location=str(agent_dir),
+    config.custom_harnesses[".agents"] = HarnessConfig(
+        name=".agents",
+        global_location=str(harness_dir),
         local_location="./.agents/skills",
     )
     jup.config.save_config(config)
@@ -94,7 +94,7 @@ def test_add_detects_but_keeps_agent_dir_source(tmp_path, monkeypatch):
     result = runner.invoke(app, ["add", str(skill_dir)], input="n\n")
 
     assert result.exit_code == 0
-    assert "Source is inside an agent directory" in result.stdout
+    assert "Source is inside a harness directory" in result.stdout
 
     # Verify it did NOT move
     assert skill_dir.exists()

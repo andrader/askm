@@ -1,0 +1,27 @@
+name: Promote to Release
+
+on:
+  schedule:
+    # Runs every Friday at 16:00 UTC
+    - cron: '0 16 * * 5'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v6
+        with:
+          ref: release
+          fetch-depth: 0
+
+      - name: Fast-forward merge main into release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git merge origin/main --no-edit
+          git push origin release

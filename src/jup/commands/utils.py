@@ -169,14 +169,14 @@ def run_git_pull(repo_dir: Path):
         raise
 
 
-def is_path_in_agent_dir(path: Path, config) -> str | None:
+def is_path_in_harness_dir(path: Path, config) -> str | None:
     resolved_path = path.resolve()
-    from ..config import get_all_agents
+    from ..config import get_all_harnesses
 
-    all_agents = get_all_agents(config)
-    for name, agent in all_agents.items():
-        for loc in [agent.global_location, agent.local_location]:
-            agent_path = Path(loc).expanduser().resolve()
-            if resolved_path == agent_path or agent_path in resolved_path.parents:
+    all_harnesses = get_all_harnesses(config)
+    for name, harness in all_harnesses.items():
+        for loc in [harness.global_location, harness.local_location]:
+            harness_path = Path(loc).expanduser().resolve()
+            if resolved_path == harness_path or harness_path in resolved_path.parents:
                 return name
     return None

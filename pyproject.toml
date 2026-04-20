@@ -1,6 +1,6 @@
 [project]
 name = "jup"
-version = "0.12.1"
+version = "0.13.0-beta.2"
 description = "jup - Agent Skills Manager"
 readme = "README.md"
 requires-python = ">=3.12"

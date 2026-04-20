@@ -2,7 +2,7 @@ from jup.models import (
     JupConfig,
     SkillSource,
     SkillsLock,
-    AgentConfig,
+    HarnessConfig,
     SyncMode,
     ScopeType,
 )
@@ -11,7 +11,7 @@ from jup.models import (
 def test_jup_config_defaults():
     config = JupConfig()
     assert config.scope == ScopeType.GLOBAL
-    assert config.agents == []
+    assert config.harnesses == []
     assert config.sync_mode == SyncMode.LINK
 
 
@@ -38,10 +38,10 @@ def test_skills_lock():
     assert lock.sources["owner/repo"].repo == "owner/repo"
 
 
-def test_agent_config():
-    agent = AgentConfig(
+def test_harness_config():
+    harness = HarnessConfig(
         name="test", global_location="~/global", local_location="./local"
     )
-    assert agent.name == "test"
-    assert agent.global_location == "~/global"
-    assert agent.local_location == "./local"
+    assert harness.name == "test"
+    assert harness.global_location == "~/global"
+    assert harness.local_location == "./local"

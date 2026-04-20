@@ -14,7 +14,7 @@ class ScopeType(StrEnum):
     LOCAL = "local"
 
 
-class AgentConfig(BaseModel):
+class HarnessConfig(BaseModel):
     name: str
     global_location: str
     local_location: str
@@ -22,8 +22,8 @@ class AgentConfig(BaseModel):
 
 class JupConfig(BaseModel):
     scope: ScopeType = Field(default=ScopeType.GLOBAL)
-    agents: List[str] = Field(default_factory=list)
-    custom_agents: Dict[str, AgentConfig] = Field(default_factory=dict)
+    harnesses: List[str] = Field(default_factory=list)
+    custom_harnesses: Dict[str, HarnessConfig] = Field(default_factory=dict)
     sync_mode: SyncMode = Field(default=SyncMode.LINK, alias="sync-mode")
 
     model_config = {"populate_by_name": True}
@@ -45,25 +45,31 @@ class SkillsLock(BaseModel):
     sources: Dict[str, SkillSource] = Field(default_factory=dict)
 
 
-# Pre-defined registry of agents based on known paths, extensible later.
-DEFAULT_AGENTS: Dict[str, AgentConfig] = {
-    "gemini": AgentConfig(
+# Pre-defined registry of harnesses based on known paths, extensible later.
+# Includes support for Gemini, Copilot, Claude, and Codex.
+DEFAULT_HARNESSES: Dict[str, HarnessConfig] = {
+    "gemini": HarnessConfig(
         name="gemini",
         global_location="~/.gemini/skills",
         local_location="./.gemini/skills",
     ),
-    "copilot": AgentConfig(
+    "copilot": HarnessConfig(
         name="copilot",
         global_location="~/.copilot/skills",
         local_location="./.copilot/skills",
     ),
-    "claude": AgentConfig(
+    "claude": HarnessConfig(
         name="claude",
         global_location="~/.claude/skills",
         local_location="./.claude/skills",
     ),
-    "default": AgentConfig(
-        name="default",
+    "codex": HarnessConfig(
+        name="codex",
+        global_location="~/.agents/skills",
+        local_location="./.agents/skills",
+    ),
+    ".agents": HarnessConfig(
+        name=".agents",
         global_location="~/.agents/skills",
         local_location="./.agents/skills",
     ),

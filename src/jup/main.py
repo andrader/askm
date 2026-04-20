@@ -3,8 +3,8 @@ from typing import Optional
 from importlib.metadata import version as get_version
 from enum import Enum
 from rich import print
-from .config import get_all_agents, get_config, save_config
-from .models import DEFAULT_AGENTS, AgentConfig, JupConfig, ScopeType, SyncMode
+from .config import get_all_harnesses, get_config, save_config
+from .models import DEFAULT_HARNESSES, HarnessConfig, JupConfig, ScopeType, SyncMode
 
 
 class VerboseState:
@@ -94,11 +94,13 @@ def config_show():
 
 @config_app.command("get", short_help="Get a config value", no_args_is_help=True)
 def config_get(
-    key: str = typer.Argument(..., help="Config key to get (scope, agents, sync-mode)"),
+    key: str = typer.Argument(
+        ..., help="Config key to get (scope, harnesses, sync-mode)"
+    ),
 ):
     config = get_config()
     # Normalize key
-    normalize_key_map = {"sync-mode": "sync_mode"}
+    normalize_key_map = {"sync-mode": "sync_mode", "agents": "harnesses"}
     norm_key = normalize_key_map.get(key, key)
 
     if norm_key in JupConfig.model_fields:
@@ -119,7 +121,11 @@ def config_set(
 ):
     config = get_config()
     # Normalize key
-    key_map = {"sync-mode": "sync_mode", "sync_mode": "sync_mode"}
+    key_map = {
+        "sync-mode": "sync_mode",
+        "sync_mode": "sync_mode",
+        "agents": "harnesses",
+    }
     norm_key = key_map.get(key, key)
     if norm_key not in JupConfig.model_fields:
         print(f"[red]Unknown config key: {key}[/red]")
@@ -128,8 +134,8 @@ def config_set(
     try:
         if norm_key == "scope":
             config.scope = ScopeType(value)
-        elif norm_key == "agents":
-            config.agents = (
+        elif norm_key == "harnesses":
+            config.harnesses = (
                 [v.strip() for v in value.split(",")] if value.lower() != "none" else []
             )
         elif norm_key == "sync_mode":
@@ -149,12 +155,16 @@ def config_set(
 )
 def config_unset(key: str = typer.Argument(..., help="Config key to unset")):
     config = get_config()
-    key_map = {"sync-mode": "sync_mode", "sync_mode": "sync_mode"}
+    key_map = {
+        "sync-mode": "sync_mode",
+        "sync_mode": "sync_mode",
+        "agents": "harnesses",
+    }
     norm_key = key_map.get(key, key)
     if norm_key == "scope":
         config.scope = ScopeType.GLOBAL
-    elif norm_key == "agents":
-        config.agents = []
+    elif norm_key == "harnesses":
+        config.harnesses = []
     elif norm_key == "sync_mode":
         config.sync_mode = SyncMode.LINK
     else:
@@ -164,32 +174,34 @@ def config_unset(key: str = typer.Argument(..., help="Config key to unset")):
     print(f"Unset {key} (reverted to default)")
 
 
-agent_app = typer.Typer(help="Manage agent providers", no_args_is_help=True)
-app.add_typer(agent_app, name="agent")
+harness_app = typer.Typer(help="Manage harness providers", no_args_is_help=True)
+app.add_typer(harness_app, name="harness")
 
 
-@agent_app.command("list")
-def agent_list():
-    """List all available agent providers."""
+@harness_app.command("list")
+def harness_list():
+    """List all available harness providers."""
     config = get_config()
-    all_agents = get_all_agents(config)
+    all_harnesses = get_all_harnesses(config)
     from rich.table import Table
 
-    table = Table(title="Agent Providers")
+    table = Table(title="Harness Providers")
     table.add_column("Name", style="magenta")
     table.add_column("Global Location", style="cyan")
     table.add_column("Local Location", style="cyan")
     table.add_column("Type", style="yellow")
 
-    for name, agent in all_agents.items():
-        agent_type = "default" if name in DEFAULT_AGENTS else "custom"
-        table.add_row(name, agent.global_location, agent.local_location, agent_type)
+    for name, harness in all_harnesses.items():
+        harness_type = "default" if name in DEFAULT_HARNESSES else "custom"
+        table.add_row(
+            name, harness.global_location, harness.local_location, harness_type
+        )
     print(table)
 
 
-@agent_app.command("add")
-def agent_add(
-    name: str = typer.Argument(..., help="Agent name"),
+@harness_app.command("add")
+def harness_add(
+    name: str = typer.Argument(..., help="Harness name"),
     global_location: str = typer.Option(
         ...,
         "--global-location",
@@ -205,24 +217,24 @@ def agent_add(
         prompt="Local skills directory (e.g. ./.gemini/skills)",
     ),
 ):
-    """Add a new custom agent provider."""
+    """Add a new custom harness provider."""
     config = get_config()
-    all_agents = get_all_agents(config)
-    if name in all_agents:
-        print(f"[red]Agent '{name}' already exists.[/red]")
+    all_harnesses = get_all_harnesses(config)
+    if name in all_harnesses:
+        print(f"[red]Harness '{name}' already exists.[/red]")
         raise typer.Exit(code=1)
 
-    agent = AgentConfig(
+    harness = HarnessConfig(
         name=name, global_location=global_location, local_location=local_location
     )
-    config.custom_agents[name] = agent
+    config.custom_harnesses[name] = harness
     save_config(config)
-    print(f"Added custom agent provider: [magenta]{name}[/magenta]")
+    print(f"Added custom harness provider: [magenta]{name}[/magenta]")
 
 
-@agent_app.command("edit")
-def agent_edit(
-    name: str = typer.Argument(..., help="Agent name"),
+@harness_app.command("edit")
+def harness_edit(
+    name: str = typer.Argument(..., help="Harness name"),
     global_location: Optional[str] = typer.Option(
         None, "--global-location", "-g", help="Global skills directory"
     ),
@@ -230,40 +242,40 @@ def agent_edit(
         None, "--local-location", "-l", help="Local skills directory"
     ),
 ):
-    """Edit an existing custom agent provider."""
+    """Edit an existing custom harness provider."""
     config = get_config()
-    if name in DEFAULT_AGENTS:
-        print(f"[red]Cannot edit default agent '{name}'.[/red]")
+    if name in DEFAULT_HARNESSES:
+        print(f"[red]Cannot edit default harness '{name}'.[/red]")
         raise typer.Exit(code=1)
-    if name not in config.custom_agents:
-        print(f"[red]Custom agent '{name}' does not exist.[/red]")
+    if name not in config.custom_harnesses:
+        print(f"[red]Custom harness '{name}' does not exist.[/red]")
         raise typer.Exit(code=1)
 
-    agent = config.custom_agents[name]
+    harness = config.custom_harnesses[name]
     if global_location is not None:
-        agent.global_location = global_location
+        harness.global_location = global_location
     if local_location is not None:
-        agent.local_location = local_location
+        harness.local_location = local_location
 
-    config.custom_agents[name] = agent
+    config.custom_harnesses[name] = harness
     save_config(config)
-    print(f"Updated custom agent provider: [magenta]{name}[/magenta]")
+    print(f"Updated custom harness provider: [magenta]{name}[/magenta]")
 
 
-@agent_app.command("remove")
-def agent_remove(name: str = typer.Argument(..., help="Agent name")):
-    """Remove a custom agent provider."""
+@harness_app.command("remove")
+def harness_remove(name: str = typer.Argument(..., help="Harness name")):
+    """Remove a custom harness provider."""
     config = get_config()
-    if name in DEFAULT_AGENTS:
-        print(f"[red]Cannot remove default agent '{name}'.[/red]")
+    if name in DEFAULT_HARNESSES:
+        print(f"[red]Cannot remove default harness '{name}'.[/red]")
         raise typer.Exit(code=1)
-    if name not in config.custom_agents:
-        print(f"[red]Custom agent '{name}' does not exist.[/red]")
+    if name not in config.custom_harnesses:
+        print(f"[red]Custom harness '{name}' does not exist.[/red]")
         raise typer.Exit(code=1)
 
-    del config.custom_agents[name]
+    del config.custom_harnesses[name]
     save_config(config)
-    print(f"Removed custom agent provider: [magenta]{name}[/magenta]")
+    print(f"Removed custom harness provider: [magenta]{name}[/magenta]")
 
 
 # Import command registrations after app and shared state are defined.

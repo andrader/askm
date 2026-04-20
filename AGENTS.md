@@ -1,6 +1,7 @@
 # AGENTS.md - Project Context & Guidelines ✨
 
-`jup` is a lightweight Python-based command-line tool designed to manage and synchronize "agent skills" across various AI assistant directories (e.g., Gemini, Copilot, Claude). It allows users to install skills from GitHub repositories or local directories, keeping them organized via a lockfile and syncing them to target locations using symlinks or file copies.
+`jup` is a lightweight Python-based command-line tool designed to manage and synchronize "agent skills" across various AI assistant directories (e.g., Gemini, Copilot, Claude, Codex).
+ It allows users to install skills from GitHub repositories or local directories, keeping them organized via a lockfile and syncing them to target locations using symlinks or file copies.
 
 ALWAYS use subagents for independent steps.
 ALWAYS follow the development workflow outlined below to ensure consistency, maintainability, and quality across the codebase. This workflow is designed to encourage thoughtful implementation, thorough testing, and clear documentation.
@@ -35,7 +36,7 @@ jup backlog
     *   `src/jup/main.py`: Main entry point and configuration sub-commands (`jup config ...`).
     *   `src/jup/commands/`: Package containing core CLI commands implementation (`add`, `remove`, `sync`, `list`, `show`, `find`).
     *   `src/jup/config.py`: Handles `~/.jup` persistence, config files, and the skills lockfile.
-    *   `src/jup/models.py`: Defines Pydantic models for configuration, skill sources, and the `DEFAULT_AGENTS` registry.
+    *   `src/jup/models.py`: Defines Pydantic models for configuration, skill sources, and the `DEFAULT_HARNESSES` registry.
     *   **Internal Storage:** Skills are cached/stored in `~/.jup/skills/` before being synced.
 
 ## Mandates & Core Workflows
@@ -62,7 +63,7 @@ jup backlog
 - **Skill Structure:** `jup` expects a directory containing a `SKILL.md` file. It supports single-skill directories or collections.
 - **Sync Behavior:** `sync` only manages entries in the lockfile. It does not preserve arbitrary manual edits inside managed target directories.
 - **Sync Mode:** The `sync-mode` alias in the CLI maps to `sync_mode` in the config model.
-- **Agent Registry:** Supported agents and their default paths are defined in `src/jup/models.py`. The `get_scope_dir` function returns the exact path to an agent's skills directory (e.g., `~/.gemini/skills`). Tests frequently patch this registry.
+- **Harness Registry:** Supported harnesses and their default paths are defined in `src/jup/models.py`. The `get_scope_dir` function returns the exact path to a harness's skills directory (e.g., `~/.gemini/skills`). Tests frequently patch this registry.
 - **Path Consistency:** Ensure that `list`, `sync`, and `remove` commands use `get_scope_dir` directly for the default target, avoiding redundant `/skills` nesting.
 
 ### Documentation
