@@ -9,11 +9,11 @@ It helps you:
 
 - install skills from GitHub repositories that expose a top-level `skills/` folder (or `.claude/skills/` as a fallback)
 - keep installed skills organized in a lockfile so they can be synced again later
-- copy or link skills into the directories used by agents like Gemini, Copilot, and Claude
+- copy or link skills into the directories used by harnesses like Gemini, Copilot, and Claude
 
 ## Features ✨
 
-- **Multi-Agent Support**: Sync skills for Gemini, Copilot, and Claude.
+- **Multi-Harness Support**: Sync skills for Gemini, Copilot, Claude, and Codex.
 - **Local-First**: Works with local skill directories and global configurations.
 - **Git Integration**: Install and update skills directly from GitHub.
 
@@ -51,16 +51,16 @@ jup config show
 
 ![jup config show](docs/images/config_show.svg)
 
-### 3. Choose which agent directories should receive synced skills 🤖
+### 3. Choose which harness directories should receive synced skills 🤖
 
 ```bash
-jup config set agents gemini,copilot,claude
+jup config set harnesses gemini,copilot,claude
 ```
 
 Use `none` to clear the list:
 
 ```bash
-jup config set agents none
+jup config set harnesses none
 ```
 
 ### 4. Add skills ➕
@@ -118,7 +118,7 @@ jup list
 
 ![jup list](docs/images/list.svg)
 
-- Shows all installed skills, their source repo (with clickable links in supported terminals), install/update date, and which agent directories they are synced to.
+- Shows all installed skills, their source repo (with clickable links in supported terminals), install/update date, and which harness directories they are synced to.
 
 #### Check for updates and apply them
 
@@ -130,7 +130,7 @@ jup sync --update
 - You can also use `jup sync --check` to only check for updates without applying them.
 - The update status and last checked date are shown in `jup list`.
 
-### 6. Push the managed skills into the configured agent directories 🔄
+### 6. Push the managed skills into the configured harness directories 🔄
 
 ```bash
 jup sync
@@ -138,7 +138,7 @@ jup sync
 
 ## Comparison with `npx skills` ⚖️
 
-While Vercel's `npx skills` is a fantastic package manager for AI skills with a built-in search registry, `jup` focuses heavily on **centralized lockfile management** and **local symlink synchronization** across multiple agents. `jup` is ideal if you want to maintain a single source of truth for your skills and automatically symlink them to Gemini, Claude, and Copilot simultaneously, especially when authoring skills locally.
+While Vercel's `npx skills` is a fantastic package manager for AI skills with a built-in search registry, `jup` focuses heavily on **centralized lockfile management** and **local symlink synchronization** across multiple harnesses. `jup` is ideal if you want to maintain a single source of truth for your skills and automatically symlink them to Gemini, Claude, and Copilot simultaneously, especially when authoring skills locally.
 
 For a full breakdown of commands, pros, and cons, see the [jup vs. npx skills comparison](docs/jup-vs-npx-skills.md).
 
@@ -178,7 +178,7 @@ After that, `jup sync` installs the managed skills into the configured target lo
 jup config set sync-mode copy
 ```
 
-Skills are placed directly into the agent's skill folder (e.g., `~/.gemini/skills/my-skill/`), ensuring they are correctly discovered by the agent.
+Skills are placed directly into the harness's skill folder (e.g., `~/.gemini/skills/my-skill/`), ensuring they are correctly discovered by the harness.
 
 ### Update and Check Features
 
@@ -189,41 +189,42 @@ Skills are placed directly into the agent's skill folder (e.g., `~/.gemini/skill
 The main configuration values are:
 
 - `scope`: `global` or `local`
-- `agents`: a comma-separated list of agent names
+- `harnesses`: a comma-separated list of harness names
 - `sync-mode`: `link` or `copy`
 
-### 7. Manage custom agent providers 🤖
+### 7. Manage custom harness providers 🤖
 
-You can add your own agent providers if they use a standard `skills/` directory structure:
+You can add your own harness providers if they use a standard `skills/` directory structure:
 
 ```bash
 # List all providers
-jup agent list
+jup harness list
 
 # Add a new custom provider
-jup agent add myagent --global-location ~/.myagent/skills --local-location ./.myagent/skills
+jup harness add myharness --global-location ~/.myharness/skills --local-location ./.myharness/skills
 
 # Edit an existing custom provider
-jup agent edit myagent --local-location ./new-path/skills
+jup harness edit myharness --local-location ./new-path/skills
 
 # Remove a custom provider
-jup agent remove myagent
+jup harness remove myharness
 ```
 
-Once a custom agent is added, you can activate it in your configuration:
+Once a custom harness is added, you can activate it in your configuration:
 
 ```bash
-jup config set agents gemini,myagent
+jup config set harnesses gemini,myharness
 ```
 
-## Supported Agents 🧩
+## Supported Harnesses 🧩
 
-`jup` includes built-in locations for these agent names:
+`jup` includes built-in locations for these harness names:
 
 - `gemini`
 - `copilot`
 - `claude`
-- `default`
+- `codex`
+- `.agents`
 
 ## Contributing 🤝
 

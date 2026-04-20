@@ -4,27 +4,27 @@ from jup.models import SkillSource
 from jup.commands.utils import LOCAL_SOURCE_TYPE
 
 
-def test_sync_does_not_delete_source_when_in_agent_dir(tmp_path, monkeypatch):
-    # Setup mock home and agent dir
+def test_sync_does_not_delete_source_when_in_harness_dir(tmp_path, monkeypatch):
+    # Setup mock home and harness dir
     fake_home = tmp_path / "home"
-    agent_dir = fake_home / ".agents" / "skills"
-    agent_dir.mkdir(parents=True)
+    harness_dir = fake_home / ".agents" / "skills"
+    harness_dir.mkdir(parents=True)
 
-    # Create a skill inside the agent dir (the "unmanaged" scenario)
-    skill_dir = agent_dir / "my-skill"
+    # Create a skill inside the harness dir (the "unmanaged" scenario)
+    skill_dir = harness_dir / "my-skill"
     skill_dir.mkdir()
     (skill_dir / "SKILL.md").write_text("info")
 
     monkeypatch.setenv("HOME", str(fake_home))
 
     config = get_config()
-    config.agents = ["default"]
-    # Mock agent location to our tmp path
-    from jup.models import AgentConfig
+    config.harnesses = [".agents"]
+    # Mock harness location to our tmp path
+    from jup.models import HarnessConfig
 
-    config.custom_agents["default"] = AgentConfig(
-        name="default",
-        global_location=str(agent_dir),
+    config.custom_harnesses[".agents"] = HarnessConfig(
+        name=".agents",
+        global_location=str(harness_dir),
         local_location="./.agents/skills",
     )
 

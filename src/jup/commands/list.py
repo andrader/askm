@@ -7,7 +7,7 @@ from rich.table import Table
 from rich.text import Text
 
 from ..config import (
-    get_all_agents,
+    get_all_harnesses,
     get_config,
     get_scope_dir,
     get_skills_lock,
@@ -38,24 +38,24 @@ def list_skills(
     lock = get_skills_lock(config)
 
     # Determine targets (where skills should be installed)
-    all_agents = get_all_agents(config)
-    configured_agents = []
+    all_harnesses = get_all_harnesses(config)
+    configured_harnesses = []
 
     # 1. Default scope directory
     default_dir = get_scope_dir(config)
-    configured_agents.append(("default", default_dir))
+    configured_harnesses.append((".agents", default_dir))
 
-    # 2. Configured agents
-    for agent_name in config.agents:
-        if agent_name in all_agents:
-            agent = all_agents[agent_name]
+    # 2. Configured harnesses
+    for harness_name in config.harnesses:
+        if harness_name in all_harnesses:
+            harness = all_harnesses[harness_name]
             loc = (
-                agent.local_location
+                harness.local_location
                 if config.scope == "local"
-                else agent.global_location
+                else harness.global_location
             )
             p = Path(loc).expanduser().resolve()
-            configured_agents.append((agent_name, p))
+            configured_harnesses.append((harness_name, p))
 
     # Filter sources
     sources_to_show = []
@@ -119,10 +119,10 @@ def list_skills(
             source_exists = skill_src_dir.exists() if skill_src_dir else False
 
             status = {}
-            for agent_name, agent_dir in configured_agents:
-                skill_path = agent_dir / skill_name
+            for harness_name, harness_dir in configured_harnesses:
+                skill_path = harness_dir / skill_name
                 info = {
-                    "path": format_location_path(agent_dir),
+                    "path": format_location_path(harness_dir),
                     "exists": False,
                     "is_symlink": False,
                     "is_broken": False,
@@ -137,7 +137,7 @@ def list_skills(
                 elif skill_path.exists():
                     info["exists"] = True
 
-                status[agent_name] = info
+                status[harness_name] = info
 
             installed_skills_data.append(
                 {
@@ -155,15 +155,19 @@ def list_skills(
 
     # Scan for unmanaged skills
     unmanaged_skills_data = []
-    for agent_name, agent_dir in configured_agents:
-        if not agent_dir.exists():
+    for harness_name, harness_dir in configured_harnesses:
+        if not harness_dir.exists():
             continue
-        for item in agent_dir.iterdir():
+        for item in harness_dir.iterdir():
             if item.is_dir() and item.name not in managed_skill_names:
                 # Check if it has a SKILL.md to be considered a skill
                 if (item / "SKILL.md").exists():
                     unmanaged_skills_data.append(
-                        {"name": item.name, "agent": agent_name, "path": rel_home(item)}
+                        {
+                            "name": item.name,
+                            "harness": harness_name,
+                            "path": rel_home(item),
+                        }
                     )
 
     if as_json:
@@ -187,17 +191,17 @@ def list_skills(
 
     for skill in installed_skills_data:
         status_lines = []
-        for agent_name, info in skill["status"].items():
+        for harness_name, info in skill["status"].items():
             symbol = "🔗" if info["is_symlink"] else "📁"
             if info["is_broken"]:
-                status_lines.append(f"[red]⛓️‍💥 {agent_name} ({info['path']})[/red]")
+                status_lines.append(f"[red]⛓️‍💥 {harness_name} ({info['path']})[/red]")
             elif info["exists"]:
                 status_lines.append(
-                    f"[green]{symbol} {agent_name}[/green] [dim]({info['path']})[/dim]"
+                    f"[green]{symbol} {harness_name}[/green] [dim]({info['path']})[/dim]"
                 )
             else:
                 status_lines.append(
-                    f"[red]{symbol} {agent_name} ({info['path']})[/red] [bold red]❌[/bold red]"
+                    f"[red]{symbol} {harness_name} ({info['path']})[/red] [bold red]❌[/bold red]"
                 )
 
         status_str = "\n".join(status_lines)
@@ -247,11 +251,11 @@ def list_skills(
         print("\n[yellow]Unmanaged Skills (not in lockfile):[/yellow]")
         un_table = Table()
         un_table.add_column("Skill Name", style="magenta")
-        un_table.add_column("Agent", style="cyan")
+        un_table.add_column("Harness", style="cyan")
         un_table.add_column("Path", style="green")
 
         for un in unmanaged_skills_data:
-            un_table.add_row(un["name"], un["agent"], un["path"])
+            un_table.add_row(un["name"], un["harness"], un["path"])
         print(un_table)
 
     # Render Tips

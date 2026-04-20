@@ -1,5 +1,5 @@
 from pathlib import Path
-from .models import DEFAULT_AGENTS, AgentConfig, JupConfig, SkillsLock
+from .models import DEFAULT_HARNESSES, HarnessConfig, JupConfig, SkillsLock
 
 JUP_CONFIG_DIR = Path.home() / ".jup"
 CONFIG_FILE = JUP_CONFIG_DIR / "config.json"
@@ -22,26 +22,28 @@ def save_config(config: JupConfig):
         f.write(config.model_dump_json(indent=4, by_alias=True))
 
 
-def get_all_agents(config: JupConfig) -> dict[str, AgentConfig]:
-    """Merge default agents with custom providers from config."""
-    all_agents = DEFAULT_AGENTS.copy()
-    if config.custom_agents:
-        all_agents.update(config.custom_agents)
-    return all_agents
+def get_all_harnesses(config: JupConfig) -> dict[str, HarnessConfig]:
+    """Merge default harnesses with custom providers from config."""
+    all_harnesses = DEFAULT_HARNESSES.copy()
+    if config.custom_harnesses:
+        all_harnesses.update(config.custom_harnesses)
+    return all_harnesses
 
 
-def get_scope_dir(config: JupConfig, agent_name: str | None = None) -> Path:
+def get_scope_dir(config: JupConfig, harness_name: str | None = None) -> Path:
     """
-    Return the skills directory for the given config and optional agent.
+    Return the skills directory for the given config and optional harness.
     """
-    all_agents = get_all_agents(config)
-    agent_key = agent_name if agent_name and agent_name in all_agents else "default"
-    agent_config = all_agents[agent_key]
+    all_harnesses = get_all_harnesses(config)
+    harness_key = (
+        harness_name if harness_name and harness_name in all_harnesses else ".agents"
+    )
+    harness_config = all_harnesses[harness_key]
 
     if config.scope == "local":
-        return Path(agent_config.local_location).expanduser().resolve()
+        return Path(harness_config.local_location).expanduser().resolve()
 
-    return Path(agent_config.global_location).expanduser().resolve()
+    return Path(harness_config.global_location).expanduser().resolve()
 
 
 def get_skills_storage_dir() -> Path:

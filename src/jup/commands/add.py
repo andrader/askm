@@ -20,7 +20,7 @@ from .utils import (
     GITHUB_SOURCE_TYPE,
     rel_home,
     run_git_clone,
-    is_path_in_agent_dir,
+    is_path_in_harness_dir,
 )
 
 
@@ -70,12 +70,12 @@ def add_skill(
             raise typer.Exit(code=1)
 
         resolved_local = local_path.resolve()
-
-        agent_name = is_path_in_agent_dir(resolved_local, config)
-        if agent_name:
+        harness_name = is_path_in_harness_dir(resolved_local, config)
+        if harness_name:
             print(
-                f"[yellow]Source is inside an agent directory ({agent_name}).[/yellow]"
+                f"[yellow]Source is inside a harness directory ({harness_name}).[/yellow]"
             )
+
             if typer.confirm(
                 "Move to central storage? (Recommended for management)", default=True
             ):

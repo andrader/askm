@@ -8,7 +8,8 @@ Both `jup` and `npx skills` are CLI tools designed to manage and install Open Ag
 | :--- | :--- | :--- |
 | **Language / Runtime** | Python (via `uv` or `pip`) | Node.js (via `npx`) |
 | **State Management** | Central lockfile (`~/.jup/skills-lock.json`) | Global or per-project installation |
-| **Multi-Agent Sync** | **Yes.** Symlinks/copies from a central cache to all configured agents via `jup sync` | **Yes.** Via `-a` flags during install (e.g., `-a gemini-cli -a cursor`) |
+| **Multi-Harness Sync** |
+ **Yes.** Symlinks/copies from a central cache to all configured agents via `jup sync` | **Yes.** Via `-a` flags during install (e.g., `-a gemini-cli -a cursor`) |
 | **Search / Registry** | **Yes.** Built-in search (`jup find`) backed by `skills.sh` | **Yes.** Built-in search (`npx skills find`) backed by `skills.sh` |
 | **Local Development** | Excellent. Symlinks local directories directly into agent folders | Good. Includes an `init` command for scaffolding |
 | **Updates** | `jup sync --update` | `npx skills update` / `npx skills check` |
@@ -21,7 +22,7 @@ Both `jup` and `npx skills` are CLI tools designed to manage and install Open Ag
 *   `jup sync`: Syncs managed skills from the central storage into the configured agent directories (e.g., `.gemini/skills`, `.claude/skills`).
 *   `jup list`: Shows all installed skills, locations, and last update times.
 *   `jup remove <target>`: Uninstalls a skill or repository.
-*   `jup config set agents gemini,claude`: Configures which agents receive the synced skills.
+*   `jup config set harnesses gemini,claude`: Configures which harnesses receive the synced skills.
 
 ### `npx skills`
 *   `npx skills find [query]`: Interactively searches for available skills in the community registry.

@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from jup.models import JupConfig, SkillsLock, ScopeType, SyncMode, AgentConfig
+from jup.models import JupConfig, SkillsLock, ScopeType, SyncMode, HarnessConfig
 from jup.config import (
     get_config,
     save_config,
@@ -17,10 +17,10 @@ def mock_jup_dir(tmp_path):
     jup_dir = tmp_path / ".jup"
     jup_dir.mkdir()
 
-    # Mock agents to use tmp_path
-    mock_agents = {
-        "default": AgentConfig(
-            name="default",
+    # Mock harnesses to use tmp_path
+    mock_harnesses = {
+        ".agents": HarnessConfig(
+            name=".agents",
             global_location=str(tmp_path / "global"),
             local_location=str(tmp_path / "local"),
         )
@@ -28,8 +28,8 @@ def mock_jup_dir(tmp_path):
 
     with patch("jup.config.JUP_CONFIG_DIR", jup_dir):
         with patch("jup.config.CONFIG_FILE", jup_dir / "config.json"):
-            with patch("jup.config.DEFAULT_AGENTS", mock_agents):
-                with patch("jup.models.DEFAULT_AGENTS", mock_agents):
+            with patch("jup.config.DEFAULT_HARNESSES", mock_harnesses):
+                with patch("jup.models.DEFAULT_HARNESSES", mock_harnesses):
                     yield jup_dir
 
 
@@ -41,13 +41,13 @@ def test_get_config_default(mock_jup_dir):
 
 def test_save_and_get_config(mock_jup_dir):
     config = JupConfig(
-        scope=ScopeType.LOCAL, agents=["gemini"], sync_mode=SyncMode.COPY
+        scope=ScopeType.LOCAL, harnesses=["gemini"], sync_mode=SyncMode.COPY
     )
     save_config(config)
 
     loaded_config = get_config()
     assert loaded_config.scope == ScopeType.LOCAL
-    assert loaded_config.agents == ["gemini"]
+    assert loaded_config.harnesses == ["gemini"]
     assert loaded_config.sync_mode == SyncMode.COPY
 
 

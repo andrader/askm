@@ -8,7 +8,7 @@ from prompt_toolkit.shortcuts import checkboxlist_dialog
 from rich import print
 
 from ..config import (
-    get_all_agents,
+    get_all_harnesses,
     get_config,
     get_scope_dir,
     get_skills_lock,
@@ -39,7 +39,7 @@ def sync_skills(
     ] = False,
     verbose: bool = False,
 ):
-    """Update all links/copies in default-lib and for other agents."""
+    """Update all links/copies in default-lib and for other harnesses."""
     verbose_state.verbose = verbose
     sync_logic(update=update, verbose=verbose, interactive=interactive)
 
@@ -138,26 +138,32 @@ def sync_logic(update: bool = False, verbose: bool = False, interactive: bool = 
     default_skills_dir = scope_dir
     targets.append(default_skills_dir)
 
-    # Agent directories
-    all_agents = get_all_agents(config)
-    for agent_name in config.agents:
-        if agent_name in all_agents:
-            agent = all_agents[agent_name]
+    # Harness directories
+    all_harnesses = get_all_harnesses(config)
+    for harness_name in config.harnesses:
+        if harness_name in all_harnesses:
+            harness = all_harnesses[harness_name]
             # Use global/local location based on scope
             loc = (
-                agent.local_location
+                harness.local_location
                 if config.scope == "local"
-                else agent.global_location
+                else harness.global_location
             )
             targets.append(Path(loc).expanduser().resolve())
         else:
-            print(f"[yellow]Warning: Unknown agent '{agent_name}'. Skipping.[/yellow]")
+            print(
+                f"[yellow]Warning: Unknown harness '{harness_name}'. Skipping.[/yellow]"
+            )
 
-    # Identify directories of inactive agents to clean up
+    # Identify directories of inactive harnesses to clean up
     active_target_paths = {t.resolve() for t in targets}
     inactive_targets = []
-    for agent_name, agent in all_agents.items():
-        loc = agent.local_location if config.scope == "local" else agent.global_location
+    for harness_name, harness in all_harnesses.items():
+        loc = (
+            harness.local_location
+            if config.scope == "local"
+            else harness.global_location
+        )
         p = Path(loc).expanduser().resolve()
         if p.exists() and p.resolve() not in active_target_paths:
             inactive_targets.append(p)
@@ -169,13 +175,13 @@ def sync_logic(update: bool = False, verbose: bool = False, interactive: bool = 
     # We only overwrite skills managed by our lockfile
     # to avoid blowing away user's manual skills.
 
-    # 1. Clean up managed skills from inactive agents and removed skills
+    # 1. Clean up managed skills from inactive harnesses and removed skills
     # Collect all skills that SHOULD exist
     all_managed_skills = set()
     for source in lock.sources.values():
         all_managed_skills.update(source.skills)
 
-    # Clean inactive agents
+    # Clean inactive harnesses
     removed_from_inactive = 0
     for it in inactive_targets:
         for skill in all_managed_skills:
@@ -191,7 +197,7 @@ def sync_logic(update: bool = False, verbose: bool = False, interactive: bool = 
 
     if removed_from_inactive > 0 and verbose_state.verbose:
         print(
-            f"🧹 Cleaned {removed_from_inactive} skills from {len(inactive_targets)} inactive agent directories."
+            f"🧹 Cleaned {removed_from_inactive} skills from {len(inactive_targets)} inactive harness directories."
         )
 
     # 2. Process each skill source

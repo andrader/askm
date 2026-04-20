@@ -4,7 +4,7 @@ import shutil
 from typer.testing import CliRunner
 from unittest.mock import patch, MagicMock
 from jup.main import app
-from jup.models import AgentConfig
+from jup.models import HarnessConfig
 
 
 runner = CliRunner()
@@ -15,9 +15,9 @@ def mock_jup_dir(tmp_path):
     jup_dir = tmp_path / ".jup"
     jup_dir.mkdir()
 
-    mock_agents = {
-        "default": AgentConfig(
-            name="default",
+    mock_harnesses = {
+        ".agents": HarnessConfig(
+            name=".agents",
             global_location=str(tmp_path / "global"),
             local_location=str(tmp_path / "local"),
         )
@@ -25,8 +25,8 @@ def mock_jup_dir(tmp_path):
 
     with patch("jup.config.JUP_CONFIG_DIR", jup_dir):
         with patch("jup.config.CONFIG_FILE", jup_dir / "config.json"):
-            with patch("jup.config.DEFAULT_AGENTS", mock_agents):
-                with patch("jup.models.DEFAULT_AGENTS", mock_agents):
+            with patch("jup.config.DEFAULT_HARNESSES", mock_harnesses):
+                with patch("jup.models.DEFAULT_HARNESSES", mock_harnesses):
                     yield jup_dir
 
 
