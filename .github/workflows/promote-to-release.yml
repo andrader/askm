@@ -19,9 +19,14 @@ jobs:
           fetch-depth: 0
 
       - name: Fast-forward merge main into release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git merge origin/main --no-edit
           git push origin release
+          
+          # Explicitly trigger the release workflow since pushes from GITHUB_TOKEN don't trigger other workflows
+          gh workflow run release.yml --ref release
