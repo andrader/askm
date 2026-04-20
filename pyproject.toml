@@ -53,7 +53,7 @@ update_changelog_on_bump = true
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
 build_command = "python -m pip install uv && uv build"
-upload_to_pypi = false
+upload_to_pypi = true
 upload_to_release = true
 
 [tool.semantic_release.branches.main]

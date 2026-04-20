@@ -40,7 +40,7 @@ jobs:
         if: steps.release.outputs.released == 'true'
         run: |
           uv build
-          # uv publish # Uncomment when PyPI is ready
+          uv publish
 
       - name: Update Floating Tags
         if: steps.release.outputs.released == 'true'
