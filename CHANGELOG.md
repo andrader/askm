@@ -1,6 +1,25 @@
 # CHANGELOG
 
 
+## v0.13.1 (2026-04-20)
+
+### Bug Fixes
+
+- Handle git clone failure gracefully when repo is not found
+  ([`1ceb65a`](https://github.com/andrader/jup/commit/1ceb65a5ddfdb966f398d8453d705bee39ba9e0d))
+
+### Continuous Integration
+
+- Add actions:write permission to promotion workflow
+  ([`c85e3e9`](https://github.com/andrader/jup/commit/c85e3e9280c65ec04910291a4557f003585418c9))
+
+- Change release promotion schedule to daily at 5am BRT
+  ([`16dec81`](https://github.com/andrader/jup/commit/16dec813706951ebd6c86a105c509fa20c048c2e))
+
+- Explicitly trigger release workflow in promotion job
+  ([`700b82a`](https://github.com/andrader/jup/commit/700b82a392f42e297d7da300d838bf4e3e7256e8))
+
+
 ## v0.13.0 (2026-04-20)
 
 ### Chores
