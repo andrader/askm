@@ -9,27 +9,32 @@ on:
 jobs:
   create-pr:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-      - name: Checkout main
+      - name: Checkout repo
         uses: actions/checkout@v6
-        with:
-          ref: main
 
       - name: Create PR from main to release
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: main
-          base: release
-          title: "🚀 Weekly Release Promotion: main -> release"
-          body: |
-            This PR is automatically generated to promote the current `main` branch to `release`.
-            Merging this PR will trigger a **stable version release**.
-            
-            Please verify:
-            - [ ] All tests passed on `main`.
-            - [ ] All new features are ready for stable users.
-            - [ ] CHANGELOG looks correct.
-          labels: |
-            release
-            automated-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BODY=$(cat <<EOF
+          This PR is automatically generated to promote the current \`main\` branch to \`release\`.
+          Merging this PR will trigger a **stable version release**.
+          
+          Please verify:
+          - [ ] All tests passed on \`main\`.
+          - [ ] All new features are ready for stable users.
+          - [ ] CHANGELOG looks correct.
+          EOF
+          )
+          
+          gh pr create \
+            --base release \
+            --head main \
+            --title "🚀 Weekly Release Promotion: main -> release" \
+            --body "$BODY" \
+            --label "release" \
+            --label "automated-pr" || echo "PR already exists or could not be created"
