@@ -46,6 +46,7 @@ class SkillsLock(BaseModel):
 
 
 # Pre-defined registry of harnesses based on known paths, extensible later.
+# Includes support for Gemini, Copilot, Claude, and Codex.
 DEFAULT_HARNESSES: Dict[str, HarnessConfig] = {
     "gemini": HarnessConfig(
         name="gemini",
