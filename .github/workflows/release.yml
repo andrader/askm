@@ -30,13 +30,13 @@ jobs:
         id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: uv run semantic-release version
+        run: uv run --quiet --frozen semantic-release version
 
       - name: Python Semantic Release (Publish VCS)
         if: steps.release.outputs.released == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: uv run semantic-release publish
+        run: uv run --quiet --frozen semantic-release publish
 
       - name: Fix permissions
         if: steps.release.outputs.released == 'true'
@@ -44,11 +44,11 @@ jobs:
 
       - name: Build Package
         if: steps.release.outputs.released == 'true'
-        run: uv build
+        run: uv build --quiet
 
       - name: Publish to PyPI
         if: steps.release.outputs.released == 'true'
-        run: uv publish
+        run: uv publish --quiet
 
       - name: Update Floating Tags
         if: steps.release.outputs.released == 'true'
