@@ -26,21 +26,29 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Python Semantic Release
+      - name: Python Semantic Release (Version)
         id: release
-        uses: python-semantic-release/python-semantic-release@v9.16.1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: uv run semantic-release version
+
+      - name: Python Semantic Release (Publish VCS)
+        if: steps.release.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: uv run semantic-release publish
 
       - name: Fix permissions
         if: steps.release.outputs.released == 'true'
         run: sudo chown -R $(id -u):$(id -g) dist/
 
+      - name: Build Package
+        if: steps.release.outputs.released == 'true'
+        run: uv build
+
       - name: Publish to PyPI
         if: steps.release.outputs.released == 'true'
-        run: |
-          uv build
-          uv publish
+        run: uv publish
 
       - name: Update Floating Tags
         if: steps.release.outputs.released == 'true'
