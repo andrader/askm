@@ -1,4 +1,5 @@
 import shutil
+import subprocess
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -126,7 +127,11 @@ def add_skill(
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             print(f"Cloning {repo_url} to {rel_home(temp_path)}...")
-            run_git_clone(repo_url, temp_path, depth=1)
+            try:
+                run_git_clone(repo_url, temp_path, depth=1)
+            except subprocess.CalledProcessError:
+                # Error message already printed by run_git_clone
+                raise typer.Exit(code=1)
 
             # Support both default and custom subdirectory for skills
             skills_dir = temp_path / path if path else temp_path / "skills"
