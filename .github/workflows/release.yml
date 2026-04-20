@@ -75,5 +75,10 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git checkout main
-          git merge origin/release --no-edit
+          # Merge release into main, favoring main for conflicts but then
+          # explicitly taking the source-of-truth files from release
+          git merge origin/release -X ours --no-edit
+          git checkout origin/release -- CHANGELOG.md pyproject.toml
+          git add CHANGELOG.md pyproject.toml
+          git commit --amend --no-edit || git commit -m "chore: sync release state to main"
           git push origin main
