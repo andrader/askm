@@ -10,7 +10,7 @@ jobs:
   create-pr:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     steps:
       - name: Checkout repo
@@ -20,6 +20,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Ensure labels exist
+          gh label create "release" --color "0E8A16" --description "Stable release promotion" || true
+          gh label create "automated-pr" --color "FBCA04" --description "Automatically generated PR" || true
+
           BODY=$(cat <<EOF
           This PR is automatically generated to promote the current \`main\` branch to \`release\`.
           Merging this PR will trigger a **stable version release**.
