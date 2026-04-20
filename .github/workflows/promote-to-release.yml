@@ -2,8 +2,8 @@ name: Promote to Release
 
 on:
   schedule:
-    # Runs every Friday at 16:00 UTC
-    - cron: '0 16 * * 5'
+    # Runs every day at 08:00 UTC (5am BRT)
+    - cron: '0 8 * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:

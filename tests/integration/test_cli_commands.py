@@ -1,4 +1,5 @@
 import json
+import subprocess
 import pytest
 import shutil
 from typer.testing import CliRunner
@@ -478,3 +479,16 @@ def test_find_skills_filtering(mock_jup_dir):
         assert "Skill 1" not in result.stdout
         assert "Skill 2" not in result.stdout
         assert "Skill 3" in result.stdout
+
+
+def test_add_skill_clone_failure(mock_jup_dir):
+    # This test verifies that if git clone fails, we exit gracefully without a traceback.
+    with patch("jup.commands.add.run_git_clone") as mock_clone:
+        mock_clone.side_effect = subprocess.CalledProcessError(
+            128, "git clone", stderr=b"Repository not found"
+        )
+
+        result = runner.invoke(app, ["add", "nonexistent/repo"])
+        assert result.exit_code == 1
+        # No traceback should be in output
+        assert "Traceback" not in result.stdout
