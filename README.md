@@ -2,6 +2,9 @@
 
 `jup` is a small command-line tool for installing and syncing agent skills across the local skill directories used by supported AI assistants.
 
+### Why `jup`? 💊
+The name is short for **"jump"**, a nod to the **Jump Program** from *The Matrix*. Just as the program was a foundational training ground for jumping between buildings (and realizing your potential), `jup` helps your agents "jump" between different environments and workflows with the right skills in hand.
+
 It helps you:
 
 - install skills from GitHub repositories that expose a top-level `skills/` folder (or `.claude/skills/` as a fallback)

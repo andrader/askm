@@ -1,6 +1,80 @@
 # CHANGELOG
 
 
+## v0.12.0-beta.3 (2026-04-20)
+
+### Bug Fixes
+
+- **ci**: Improve weekly release PR logic to fail on unexpected errors
+  ([`57ac0f9`](https://github.com/andrader/jup/commit/57ac0f9063ac711057d311e8c2f733d48fd7c390))
+
+
+## v0.12.0-beta.2 (2026-04-20)
+
+### Bug Fixes
+
+- **ci**: Ensure labels exist and update permissions for weekly release PR
+  ([`b685ae9`](https://github.com/andrader/jup/commit/b685ae97494b6406c862abe11a7970af7663da1e))
+
+### Chores
+
+- Add mkdocs deployment workflow
+  ([`5468348`](https://github.com/andrader/jup/commit/5468348baf9d1ca47216e02485a5d4952d9d7a66))
+
+- Add mkdocs.yml to repository
+  ([`0b18a4c`](https://github.com/andrader/jup/commit/0b18a4cd9e1225439a6eedc3eafb9b0e1f91dae9))
+
+- Clean up docs workflow
+  ([`f32e978`](https://github.com/andrader/jup/commit/f32e978bc8d53e9b57a4c34846f5afa7a2b8bb97))
+
+- Debug docs deployment and trigger on main
+  ([`de35e3e`](https://github.com/andrader/jup/commit/de35e3ee14565de85e79792186ee9f47f6a87ab0))
+
+- Migrate documentation stack from mkdocs to zensical
+  ([`016c975`](https://github.com/andrader/jup/commit/016c975df607522121ebf94358c62b05d6c00f03))
+
+- Update jup package version to 0.12.0b1
+  ([`85e672a`](https://github.com/andrader/jup/commit/85e672ac83336b686377a6d2c28fd3c70cc73655))
+
+- Update setup-uv action to v8 and remove Python setup step
+  ([`ef29e16`](https://github.com/andrader/jup/commit/ef29e1656b2f8df934b10a90458daed2ebfa252e))
+
+- Use explicit config path for mkdocs deployment
+  ([`25988f1`](https://github.com/andrader/jup/commit/25988f199044c61ae1696c92006ee9ff8adcff68))
+
+- **ci**: Add --quiet and --frozen flags to uv commands
+  ([`ba4d9ac`](https://github.com/andrader/jup/commit/ba4d9ac045f5058ad6133df13d7029a1b7928c7c))
+
+- **ci**: Re-enable automated PyPI publishing
+  ([`91d5c24`](https://github.com/andrader/jup/commit/91d5c241af772a2210cd54ab9b30439e2753d2a7))
+
+- **ci**: Refactor release workflow to use local semantic-release and explicit build steps
+  ([`5811f76`](https://github.com/andrader/jup/commit/5811f7628e09295a4d1bde6ef3389744e520e2f0))
+
+- **ci**: Replace create-pull-request action with gh cli
+  ([`a592366`](https://github.com/andrader/jup/commit/a59236656e82969980c94b18efbb11fbc035d7a7))
+
+- **ci**: Split semantic-release version/publish and PyPI build/publish steps
+  ([`6db5208`](https://github.com/andrader/jup/commit/6db5208ba3ba59d2b136a463813fb80c113f6f0d))
+
+### Documentation
+
+- Add site_url to mkdocs.yml
+  ([`9a0b1a3`](https://github.com/andrader/jup/commit/9a0b1a3f53413eb7fbf56f5d26e387b4d40a9d1a))
+
+- Explain name origin (The Matrix Jump Program)
+  ([`b2ce842`](https://github.com/andrader/jup/commit/b2ce84289f0dbb4db831b84cd28d498312d37bde))
+
+- Improve documentation structure, fix api reference, and update zensical theme
+  ([`19ca883`](https://github.com/andrader/jup/commit/19ca883baf328813ca916666035f089b92578ba3))
+
+- Restore essential documentation files and fix nav
+  ([`58b9e8a`](https://github.com/andrader/jup/commit/58b9e8acafb28858d961a9fcc953efaaf4a5f9c9))
+
+- Trigger build
+  ([`2bafe73`](https://github.com/andrader/jup/commit/2bafe73f13f8b77628544ef53195fbb96e13f6c9))
+
+
 ## v0.12.0-beta.1 (2026-04-17)
 
 ### Chores

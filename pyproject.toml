@@ -1,6 +1,6 @@
 [project]
 name = "jup"
-version = "0.12.0-beta.1"
+version = "0.12.0-beta.3"
 description = "jup - Agent Skills Manager"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -35,9 +35,9 @@ dev = [
     "commitizen>=4.1.0",
     "python-semantic-release>=9.0.0",
     "pre-commit>=4.0.0",
-    "mkdocs>=1.6.1",
-    "mkdocstrings[python]>=1.0.4",
-    "mkdocs-material>=9.7.6",
+    "zensical>=0.0.30",
+    "mkdocstrings>=1.0.4",
+    "mkdocstrings-python>=2.0.3",
 ]
 
 [tool.pytest.ini_options]
@@ -52,7 +52,7 @@ update_changelog_on_bump = true
 
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
-build_command = "python -m pip install uv && uv build"
+build_command = "uv build"
 upload_to_pypi = false
 upload_to_release = true
 
@@ -66,7 +66,7 @@ match = "release"
 prerelease = false
 
 [tool.semantic_release.changelog]
-changelog_file = "CHANGELOG.md"
+default_templates.changelog_file = "CHANGELOG.md"
 
 [tool.ruff]
 exclude = ["templates"]
