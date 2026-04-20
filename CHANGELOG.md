@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.12.0-beta.3 (2026-04-20)
+
+### Bug Fixes
+
+- **ci**: Improve weekly release PR logic to fail on unexpected errors
+  ([`57ac0f9`](https://github.com/andrader/jup/commit/57ac0f9063ac711057d311e8c2f733d48fd7c390))
+
+
 ## v0.12.0-beta.2 (2026-04-20)
 
 ### Bug Fixes
