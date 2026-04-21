@@ -69,7 +69,7 @@ jobs:
           fi
 
       - name: Back-sync release to main
-        if: steps.release.outputs.released == 'true' && github.ref_name == 'release'
+        if: github.ref_name == 'release'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
