@@ -1,6 +1,27 @@
 # CHANGELOG
 
 
+## v0.14.0-beta.1 (2026-04-21)
+
+### Chores
+
+- Reconcile main with latest release v0.13.1
+  ([`be69484`](https://github.com/andrader/jup/commit/be6948458f9fd7b8c38c2ed910c2758899a23c49))
+
+### Continuous Integration
+
+- Improve branch promotion and back-sync merge resilience
+  ([`0c7bd17`](https://github.com/andrader/jup/commit/0c7bd1737488a2ef3ce7ba243365eecf1722b7b9))
+
+### Features
+
+- Differentiate global and local skills in jup list and improve config isolation
+  ([`43d8bd0`](https://github.com/andrader/jup/commit/43d8bd0adfd171b5a066249ae8e0cf523bc6c526))
+
+
+## v0.13.0-beta.3 (2026-04-20)
+
+
 ## v0.13.1 (2026-04-20)
 
 ### Bug Fixes
