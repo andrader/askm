@@ -80,5 +80,5 @@ jobs:
           git merge origin/release -X ours --no-edit
           git checkout origin/release -- CHANGELOG.md pyproject.toml
           git add CHANGELOG.md pyproject.toml
-          git commit --amend --no-edit || git commit -m "chore: sync release state to main"
+          git diff --cached --quiet || git commit -m "chore: sync release state to main"
           git push origin main
