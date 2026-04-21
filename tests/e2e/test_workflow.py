@@ -30,16 +30,15 @@ def mock_env(tmp_path):
     ((skills_dir / "useful-skill") / "SKILL.md").write_text("Cool skill")
 
     with patch("jup.config.JUP_CONFIG_DIR", jup_dir):
-        with patch("jup.config.CONFIG_FILE", jup_dir / "config.json"):
-            with patch("jup.config.DEFAULT_HARNESSES", mock_harnesses):
-                with patch("jup.models.DEFAULT_HARNESSES", mock_harnesses):
-                    with patch("jup.commands.add.run_git_clone") as mock_clone:
+        with patch("jup.config.DEFAULT_HARNESSES", mock_harnesses):
+            with patch("jup.models.DEFAULT_HARNESSES", mock_harnesses):
+                with patch("jup.commands.add.run_git_clone") as mock_clone:
 
-                        def side_effect(repo_url, dest_dir, **kwargs):
-                            shutil.copytree(repo_dir, dest_dir, dirs_exist_ok=True)
+                    def side_effect(repo_url, dest_dir, **kwargs):
+                        shutil.copytree(repo_dir, dest_dir, dirs_exist_ok=True)
 
-                        mock_clone.side_effect = side_effect
-                        yield jup_dir
+                    mock_clone.side_effect = side_effect
+                    yield jup_dir
 
 
 def test_full_workflow(mock_env):

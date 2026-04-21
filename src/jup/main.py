@@ -192,7 +192,14 @@ def harness_list():
     table.add_column("Type", style="yellow")
 
     for name, harness in all_harnesses.items():
-        harness_type = "default" if name in DEFAULT_HARNESSES else "custom"
+        is_default = name in DEFAULT_HARNESSES
+        is_customized = name in config.custom_harnesses
+
+        if is_default:
+            harness_type = "[yellow]customized[/yellow]" if is_customized else "default"
+        else:
+            harness_type = "custom"
+
         table.add_row(
             name, harness.global_location, harness.local_location, harness_type
         )
@@ -266,16 +273,20 @@ def harness_edit(
 def harness_remove(name: str = typer.Argument(..., help="Harness name")):
     """Remove a custom harness provider."""
     config = get_config()
-    if name in DEFAULT_HARNESSES:
-        print(f"[red]Cannot remove default harness '{name}'.[/red]")
-        raise typer.Exit(code=1)
     if name not in config.custom_harnesses:
-        print(f"[red]Custom harness '{name}' does not exist.[/red]")
+        if name in DEFAULT_HARNESSES:
+            print(
+                f"[red]Cannot remove default harness '{name}' (it is not currently customized).[/red]"
+            )
+        else:
+            print(f"[red]Custom harness '{name}' does not exist.[/red]")
         raise typer.Exit(code=1)
 
     del config.custom_harnesses[name]
     save_config(config)
-    print(f"Removed custom harness provider: [magenta]{name}[/magenta]")
+    print(
+        f"Removed custom harness provider: [magenta]{name}[/magenta] (reverted to default if applicable)"
+    )
 
 
 # Import command registrations after app and shared state are defined.

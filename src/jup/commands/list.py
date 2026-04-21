@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich import print
@@ -14,6 +15,7 @@ from ..config import (
     get_skills_storage_dir,
 )
 from ..main import app
+from ..models import ScopeType
 from .utils import (
     GH_PREFIX,
     GITHUB_SOURCE_TYPE,
@@ -26,149 +28,164 @@ from .utils import (
 @app.command("ls", hidden=True)
 def list_skills(
     only_local: bool = typer.Option(
-        False, "--only-local", help="Show only local skills"
+        False, "--only-local", help="Show only local skills (from local path source)"
     ),
     remote: bool = typer.Option(
         False, "--remote", help="Show only remote (GitHub) skills"
+    ),
+    scope: Optional[ScopeType] = typer.Option(
+        None, "--scope", help="Filter by scope (global or local)"
     ),
     as_json: bool = typer.Option(False, "--json", help="Output in JSON format"),
 ):
     """List installed skills as a table or JSON."""
     config = get_config()
-    lock = get_skills_lock(config)
 
-    # Determine targets (where skills should be installed)
-    all_harnesses = get_all_harnesses(config)
-    configured_harnesses = []
+    if scope:
+        scopes_to_check = [scope]
+    else:
+        # Show both by default if not specified
+        scopes_to_check = [ScopeType.GLOBAL, ScopeType.LOCAL]
 
-    # 1. Default scope directory
-    default_dir = get_scope_dir(config)
-    configured_harnesses.append((".agents", default_dir))
-
-    # 2. Configured harnesses
-    for harness_name in config.harnesses:
-        if harness_name in all_harnesses:
-            harness = all_harnesses[harness_name]
-            loc = (
-                harness.local_location
-                if config.scope == "local"
-                else harness.global_location
-            )
-            p = Path(loc).expanduser().resolve()
-            configured_harnesses.append((harness_name, p))
-
-    # Filter sources
-    sources_to_show = []
-    for source_key, source in lock.sources.items():
-        source_type = source.source_type or GITHUB_SOURCE_TYPE
-        if only_local and source_type != LOCAL_SOURCE_TYPE:
-            continue
-        if remote and source_type == LOCAL_SOURCE_TYPE:
-            continue
-        sources_to_show.append((source_key, source))
-
-    # Prepare data for display/JSON
     installed_skills_data = []
     managed_skill_names = set()
-
-    def format_location_path(p: Path) -> str:
-        if p.name == "skills":
-            p = p.parent
-        return rel_home(p)
-
-    for source_key, source in sources_to_show:
-        source_type = source.source_type or GITHUB_SOURCE_TYPE
-        repo_ref = source.repo or source_key
-
-        # Calculate source storage dir for this source
-        storage_dir: Path | None = None
-        local_source_root: Path | None = None
-
-        if source_type == LOCAL_SOURCE_TYPE:
-            local_path_str = source.source_path or source_key
-            local_source_root = Path(local_path_str).expanduser().resolve()
-        else:
-            if source.source_path:
-                storage_dir = Path(source.source_path).expanduser().resolve()
-            else:
-                if "/" in repo_ref:
-                    owner, repo_name = repo_ref.split("/", 1)
-                    storage_dir = (
-                        get_skills_storage_dir()
-                        / str(source.category or "misc")
-                        / GH_PREFIX
-                        / owner
-                        / repo_name
-                    )
-
-        for skill_name in source.skills:
-            managed_skill_names.add(skill_name)
-
-            # Check source existence
-            skill_src_dir = None
-            if source_type == LOCAL_SOURCE_TYPE:
-                if local_source_root:
-                    skill_src_dir = (
-                        local_source_root
-                        if source.source_layout == "single"
-                        else local_source_root / skill_name
-                    )
-            elif storage_dir:
-                skill_src_dir = storage_dir / skill_name
-
-            source_exists = skill_src_dir.exists() if skill_src_dir else False
-
-            status = {}
-            for harness_name, harness_dir in configured_harnesses:
-                skill_path = harness_dir / skill_name
-                info = {
-                    "path": format_location_path(harness_dir),
-                    "exists": False,
-                    "is_symlink": False,
-                    "is_broken": False,
-                }
-
-                if skill_path.is_symlink():
-                    info["is_symlink"] = True
-                    if not skill_path.exists():
-                        info["is_broken"] = True
-                    else:
-                        info["exists"] = True
-                elif skill_path.exists():
-                    info["exists"] = True
-
-                status[harness_name] = info
-
-            installed_skills_data.append(
-                {
-                    "name": skill_name,
-                    "repo": repo_ref,
-                    "source_type": source_type,
-                    "source_exists": source_exists,
-                    "source_path": rel_home(skill_src_dir)
-                    if skill_src_dir
-                    else "unknown",
-                    "status": status,
-                    "last_updated": source.last_updated or "-",
-                }
-            )
-
-    # Scan for unmanaged skills
     unmanaged_skills_data = []
-    for harness_name, harness_dir in configured_harnesses:
-        if not harness_dir.exists():
-            continue
-        for item in harness_dir.iterdir():
-            if item.is_dir() and item.name not in managed_skill_names:
-                # Check if it has a SKILL.md to be considered a skill
-                if (item / "SKILL.md").exists():
-                    unmanaged_skills_data.append(
-                        {
-                            "name": item.name,
-                            "harness": harness_name,
-                            "path": rel_home(item),
-                        }
-                    )
+
+    all_harnesses = get_all_harnesses(config)
+
+    for current_scope in scopes_to_check:
+        temp_config = config.model_copy()
+        temp_config.scope = current_scope
+        lock = get_skills_lock(temp_config)
+
+        # Determine targets (where skills should be installed)
+        configured_harnesses = []
+
+        # 1. Default scope directory
+        default_dir = get_scope_dir(temp_config)
+        configured_harnesses.append((".agents", default_dir))
+
+        # 2. Configured harnesses
+        for harness_name in config.harnesses:
+            if harness_name in all_harnesses:
+                harness = all_harnesses[harness_name]
+                loc = (
+                    harness.local_location
+                    if current_scope == ScopeType.LOCAL
+                    else harness.global_location
+                )
+                p = Path(loc).expanduser().resolve()
+                configured_harnesses.append((harness_name, p))
+
+        # Filter sources
+        sources_to_show = []
+        for source_key, source in lock.sources.items():
+            source_type = source.source_type or GITHUB_SOURCE_TYPE
+            if only_local and source_type != LOCAL_SOURCE_TYPE:
+                continue
+            if remote and source_type == LOCAL_SOURCE_TYPE:
+                continue
+            sources_to_show.append((source_key, source))
+
+        def format_location_path(p: Path) -> str:
+            if p.name == "skills":
+                p = p.parent
+            return rel_home(p)
+
+        for source_key, source in sources_to_show:
+            source_type = source.source_type or GITHUB_SOURCE_TYPE
+            repo_ref = source.repo or source_key
+
+            # Calculate source storage dir for this source
+            storage_dir: Path | None = None
+            local_source_root: Path | None = None
+
+            if source_type == LOCAL_SOURCE_TYPE:
+                local_path_str = source.source_path or source_key
+                local_source_root = Path(local_path_str).expanduser().resolve()
+            else:
+                if source.source_path:
+                    storage_dir = Path(source.source_path).expanduser().resolve()
+                else:
+                    if "/" in repo_ref:
+                        owner, repo_name = repo_ref.split("/", 1)
+                        storage_dir = (
+                            get_skills_storage_dir()
+                            / str(source.category or "misc")
+                            / GH_PREFIX
+                            / owner
+                            / repo_name
+                        )
+
+            for skill_name in source.skills:
+                managed_skill_names.add(skill_name)
+
+                # Check source existence
+                skill_src_dir = None
+                if source_type == LOCAL_SOURCE_TYPE:
+                    if local_source_root:
+                        skill_src_dir = (
+                            local_source_root
+                            if source.source_layout == "single"
+                            else local_source_root / skill_name
+                        )
+                elif storage_dir:
+                    skill_src_dir = storage_dir / skill_name
+
+                source_exists = skill_src_dir.exists() if skill_src_dir else False
+
+                status = {}
+                for harness_name, harness_dir in configured_harnesses:
+                    skill_path = harness_dir / skill_name
+                    info = {
+                        "path": format_location_path(harness_dir),
+                        "exists": False,
+                        "is_symlink": False,
+                        "is_broken": False,
+                    }
+
+                    if skill_path.is_symlink():
+                        info["is_symlink"] = True
+                        if not skill_path.exists():
+                            info["is_broken"] = True
+                        else:
+                            info["exists"] = True
+                    elif skill_path.exists():
+                        info["exists"] = True
+
+                    status[harness_name] = info
+
+                installed_skills_data.append(
+                    {
+                        "name": skill_name,
+                        "repo": repo_ref,
+                        "source_type": source_type,
+                        "source_exists": source_exists,
+                        "source_path": rel_home(skill_src_dir)
+                        if skill_src_dir
+                        else "unknown",
+                        "status": status,
+                        "last_updated": source.last_updated or "-",
+                        "scope": current_scope.value,
+                    }
+                )
+
+        # Scan for unmanaged skills in this scope
+        for harness_name, harness_dir in configured_harnesses:
+            if not harness_dir.exists():
+                continue
+            for item in harness_dir.iterdir():
+                if item.is_dir() and item.name not in managed_skill_names:
+                    # Check if it has a SKILL.md to be considered a skill
+                    if (item / "SKILL.md").exists():
+                        unmanaged_skills_data.append(
+                            {
+                                "name": item.name,
+                                "harness": harness_name,
+                                "path": rel_home(item),
+                                "scope": current_scope.value,
+                            }
+                        )
 
     if as_json:
         output = {
@@ -178,12 +195,13 @@ def list_skills(
         print(json.dumps(output, indent=2))
         return
 
-    if not lock.sources and not unmanaged_skills_data:
+    if not installed_skills_data and not unmanaged_skills_data:
         print("No skills installed.")
         return
 
     # Render Table
     table = Table(title="Installed Skills")
+    table.add_column("Scope", style="yellow")
     table.add_column("Skill Name", style="magenta", no_wrap=True)
     table.add_column("Repo/Origin", style="cyan")
     table.add_column("Other Locations", style="green")
@@ -232,6 +250,7 @@ def list_skills(
             repo_display = repo_text
 
         table.add_row(
+            skill["scope"].capitalize(),
             skill["name"],
             repo_display,
             status_str,
@@ -250,12 +269,15 @@ def list_skills(
     if unmanaged_skills_data:
         print("\n[yellow]Unmanaged Skills (not in lockfile):[/yellow]")
         un_table = Table()
+        un_table.add_column("Scope", style="yellow")
         un_table.add_column("Skill Name", style="magenta")
         un_table.add_column("Harness", style="cyan")
         un_table.add_column("Path", style="green")
 
         for un in unmanaged_skills_data:
-            un_table.add_row(un["name"], un["harness"], un["path"])
+            un_table.add_row(
+                un["scope"].capitalize(), un["name"], un["harness"], un["path"]
+            )
         print(un_table)
 
     # Render Tips

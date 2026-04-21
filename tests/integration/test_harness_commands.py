@@ -21,10 +21,9 @@ def mock_jup_dir(tmp_path):
     }
 
     with patch("jup.config.JUP_CONFIG_DIR", jup_dir):
-        with patch("jup.config.CONFIG_FILE", jup_dir / "config.json"):
-            with patch("jup.config.DEFAULT_HARNESSES", mock_harnesses):
-                with patch("jup.models.DEFAULT_HARNESSES", mock_harnesses):
-                    yield jup_dir
+        with patch("jup.config.DEFAULT_HARNESSES", mock_harnesses):
+            with patch("jup.models.DEFAULT_HARNESSES", mock_harnesses):
+                yield jup_dir
 
 
 def test_harness_list_default(mock_jup_dir):
@@ -137,4 +136,7 @@ def test_harness_remove_custom(mock_jup_dir):
 def test_harness_remove_default_fails(mock_jup_dir):
     result = runner.invoke(app, ["harness", "remove", ".agents"])
     assert result.exit_code == 1
-    assert "Cannot remove default harness '.agents'." in result.stdout
+    assert (
+        "Cannot remove default harness '.agents' (it is not currently customized)."
+        in result.stdout
+    )

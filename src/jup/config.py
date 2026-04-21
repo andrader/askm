@@ -2,14 +2,14 @@ from pathlib import Path
 from .models import DEFAULT_HARNESSES, HarnessConfig, JupConfig, SkillsLock
 
 JUP_CONFIG_DIR = Path.home() / ".jup"
-CONFIG_FILE = JUP_CONFIG_DIR / "config.json"
 
 
 def get_config() -> JupConfig:
-    if not CONFIG_FILE.exists():
+    config_file = JUP_CONFIG_DIR / "config.json"
+    if not config_file.exists():
         return JupConfig()
     try:
-        json_bytes = CONFIG_FILE.read_bytes()
+        json_bytes = config_file.read_bytes()
         return JupConfig.model_validate_json(json_bytes)
     except Exception:
         # Default config if corrupted
@@ -18,7 +18,8 @@ def get_config() -> JupConfig:
 
 def save_config(config: JupConfig):
     JUP_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    with open(CONFIG_FILE, "w") as f:
+    config_file = JUP_CONFIG_DIR / "config.json"
+    with open(config_file, "w") as f:
         f.write(config.model_dump_json(indent=4, by_alias=True))
 
 
@@ -55,7 +56,6 @@ def get_skills_storage_dir() -> Path:
 
 def get_lockfile_path(config: JupConfig) -> Path:
     scope_dir = get_scope_dir(config)
-    scope_dir.mkdir(parents=True, exist_ok=True)
     return scope_dir / "skills.lock"
 
 
@@ -72,5 +72,6 @@ def get_skills_lock(config: JupConfig) -> SkillsLock:
 
 def save_skills_lock(config: JupConfig, lock: SkillsLock):
     lock_file = get_lockfile_path(config)
+    lock_file.parent.mkdir(parents=True, exist_ok=True)
     with open(lock_file, "w") as f:
         f.write(lock.model_dump_json(indent=4))
