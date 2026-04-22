@@ -1,6 +1,59 @@
 # CHANGELOG
 
 
+## v0.14.0-beta.2 (2026-04-22)
+
+### Bug Fixes
+
+- Add scope backward compatibility and improve list output robustness
+  ([`64ef36d`](https://github.com/andrader/jup/commit/64ef36d3795e5a218bb9c9da1a82c61500add9db))
+
+### Continuous Integration
+
+- Fix back-sync release to main non-fast-forward issue
+  ([`38c52ed`](https://github.com/andrader/jup/commit/38c52edccda9b7beb180f5320e0af51417744d25))
+
+- Fix back-sync skip and improve stable changelog by disabling beta tags
+  ([`6ca85a3`](https://github.com/andrader/jup/commit/6ca85a3a28e15c662023e046a35fe60f3807df1b))
+
+### Documentation
+
+- Add lockfile specification and update backlog
+  ([`4f92552`](https://github.com/andrader/jup/commit/4f92552071c1b4f04639d589f6d6747e8787d5d6))
+
+- Finalize lockfile specification with limitations analysis
+  ([`a2ecea5`](https://github.com/andrader/jup/commit/a2ecea58c36c71aee5ae36b2eac89abc80990103))
+
+- Update documentation, skill and mandates for new features
+  ([`01f00ab`](https://github.com/andrader/jup/commit/01f00abdbb214f93170569370e8db87451cd4ba7))
+
+- Update project mandates and roadmap backlog
+  ([`507c664`](https://github.com/andrader/jup/commit/507c6644e8032838ab4ba380b0e9535fa220a7f6))
+
+### Features
+
+- Add CLI aliases for list, add, remove and config commands
+  ([`33c8734`](https://github.com/andrader/jup/commit/33c8734053189d1d46c6ee4150a148475f99d3d6))
+
+- Add smart URL parsing, exact path resolution, target selection flags, versioning, and metadata
+  injection
+  ([`9d46c61`](https://github.com/andrader/jup/commit/9d46c6165231bf24f0474f5241d95dcb68b83647))
+
+- Enhance list command to show version and source metadata
+  ([`fb611e7`](https://github.com/andrader/jup/commit/fb611e79ea893240d4dd001d0d717d8cd8da098c))
+
+- Rename global scope to user, add agent defaults and metadata fields
+  ([`8f5294a`](https://github.com/andrader/jup/commit/8f5294a84056749ed8daea7cdd4502a5d7a3d3d7))
+
+### Testing
+
+- Add adversarial tests and fix deduplication, parser, and metadata bugs
+  ([`b567a0a`](https://github.com/andrader/jup/commit/b567a0a06f084bf66fc22cee0edc58a5a77ea7a9))
+
+- Isolate tests and prevent leaks to local environment
+  ([`ac43c56`](https://github.com/andrader/jup/commit/ac43c5664f112a2523b768389bac6e1a0aaef3ce))
+
+
 ## v0.14.0-beta.1 (2026-04-21)
 
 ### Chores
