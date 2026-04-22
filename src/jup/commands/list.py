@@ -41,6 +41,13 @@ def list_skills(
 ):
     """List installed skills as a table or JSON."""
     if target:
+        if target != "skills":
+            if only_local or remote or scope is not None or as_json:
+                print(
+                    f"[red]Options like --json, --only-local, --remote, --scope are not supported for target '{target}'.[/red]"
+                )
+                raise typer.Exit(code=1)
+
         if target == "skills":
             pass
         elif target in ("agents", "agent", "harness", "harnesses"):
@@ -185,6 +192,8 @@ def list_skills(
                         "status": status,
                         "last_updated": source.last_updated or "-",
                         "scope": current_scope.value,
+                        "version": source.version,
+                        "source": source.source,
                     }
                 )
 
@@ -210,7 +219,10 @@ def list_skills(
             "installed": installed_skills_data,
             "unmanaged": unmanaged_skills_data,
         }
-        print(json.dumps(output, indent=2))
+        # Use standard print for JSON to avoid rich colorization
+        import sys
+
+        sys.stdout.write(json.dumps(output, indent=2) + "\n")
         return
 
     if not installed_skills_data and not unmanaged_skills_data:
@@ -220,7 +232,7 @@ def list_skills(
     # Render Table
     table = Table(title="Installed Skills")
     table.add_column("Scope", style="yellow")
-    table.add_column("Skill Name", style="magenta", no_wrap=True)
+    table.add_column("Skill Name", style="magenta")
     table.add_column("Repo/Origin", style="cyan")
     table.add_column("Other Locations", style="green")
     table.add_column("Last Updated", style="white")
