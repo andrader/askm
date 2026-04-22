@@ -1,5 +1,8 @@
 from pathlib import Path
+import contextlib
+from rich import print
 from .models import DEFAULT_HARNESSES, HarnessConfig, JupConfig, SkillsLock
+from .core.lock import LockFileManager
 
 JUP_CONFIG_DIR = Path.home() / ".jup"
 
@@ -17,10 +20,17 @@ def get_config() -> JupConfig:
 
 
 def save_config(config: JupConfig):
-    JUP_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    config_file = JUP_CONFIG_DIR / "config.json"
-    with open(config_file, "w") as f:
-        f.write(config.model_dump_json(indent=4, by_alias=True))
+    try:
+        JUP_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        config_file = JUP_CONFIG_DIR / "config.json"
+        with open(config_file, "w") as f:
+            f.write(config.model_dump_json(indent=4, by_alias=True))
+    except PermissionError:
+        print(
+            f"[red]Error: Permission denied when saving config to {JUP_CONFIG_DIR}[/red]"
+        )
+    except Exception as e:
+        print(f"[red]Error: Failed to save config: {e}[/red]")
 
 
 def get_all_harnesses(config: JupConfig) -> dict[str, HarnessConfig]:
@@ -59,6 +69,10 @@ def get_lockfile_path(config: JupConfig) -> Path:
     return scope_dir / "skills.lock"
 
 
+def get_lock_manager(config: JupConfig) -> LockFileManager:
+    return LockFileManager(get_lockfile_path(config))
+
+
 def get_skills_lock(config: JupConfig) -> SkillsLock:
     lock_file = get_lockfile_path(config)
     if not lock_file.exists():
@@ -70,8 +84,31 @@ def get_skills_lock(config: JupConfig) -> SkillsLock:
         return SkillsLock()
 
 
+@contextlib.contextmanager
+def skills_lock_session(config: JupConfig):
+    """
+    Context manager that yields a SkillsLock and automatically saves it on exit.
+    Handles file locking for the entire session.
+    """
+    try:
+        lm = get_lock_manager(config)
+        with lm.lock(write=True):
+            lock = get_skills_lock(config)
+            yield lock
+            save_skills_lock(config, lock)
+    except Exception:
+        raise
+
+
 def save_skills_lock(config: JupConfig, lock: SkillsLock):
-    lock_file = get_lockfile_path(config)
-    lock_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(lock_file, "w") as f:
-        f.write(lock.model_dump_json(indent=4))
+    try:
+        lock_file = get_lockfile_path(config)
+        lock_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(lock_file, "w") as f:
+            f.write(lock.model_dump_json(indent=4))
+    except PermissionError:
+        print(
+            f"[red]Error: Permission denied when saving skills lock to {lock_file}[/red]"
+        )
+    except Exception as e:
+        print(f"[red]Error: Failed to save skills lock: {e}[/red]")

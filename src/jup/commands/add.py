@@ -11,17 +11,16 @@ from rich import print
 
 from ..config import (
     get_config,
-    get_skills_lock,
     get_skills_storage_dir,
-    save_skills_lock,
+    skills_lock_session,
 )
 from ..context import verbose_state
 from ..models import SkillSource, ScopeType
+from ..core.filesystem import rel_home, validate_path
 from .utils import (
     GH_PREFIX,
     LOCAL_SOURCE_TYPE,
     GITHUB_SOURCE_TYPE,
-    rel_home,
     run_git_clone,
     is_path_in_harness_dir,
 )
@@ -51,6 +50,8 @@ def parse_repo_arg(repo_arg: str):
             if len(path_parts) >= 2:
                 owner = path_parts[0]
                 repo = path_parts[1]
+                if repo.endswith(".git"):
+                    repo = repo[:-4]
                 subpath = None
                 if len(path_parts) > 4 and path_parts[2] == "tree":
                     # We ignore the branch part (path_parts[3]) for the subpath itself
@@ -61,7 +62,14 @@ def parse_repo_arg(repo_arg: str):
                 return owner, repo, subpath, version, True
     else:
         # Check if it's owner/repo format
-        parts = repo_arg.split("/")
+        # Normalize: strip only trailing slashes
+        repo_arg_norm = repo_arg.rstrip("/")
+        parts = repo_arg_norm.split("/")
+
+        # If it starts with /, it's an absolute path, so it's local
+        if repo_arg.startswith("/"):
+            return None
+
         if len(parts) >= 2 and not Path(repo_arg).expanduser().exists():
             owner = parts[0]
             repo = parts[1]
@@ -259,6 +267,7 @@ def add_skill(
 
             storage_base = get_skills_storage_dir()
             target_dir = storage_base / category / GH_PREFIX / owner / repo_name
+            validate_path(target_dir, storage_base)
             if version_resolved:
                 target_dir = target_dir.with_name(f"{repo_name}-{version_resolved}")
 
@@ -300,31 +309,30 @@ def add_skill(
                 # Ensure found_skills points to the destination target_dir so lockfile stores correct name
                 found_skills = [target_dir]
 
-    lock = get_skills_lock(config)
-
-    lock.sources[source_key] = SkillSource(
-        repo=f"{owner}/{repo_name}" if source_type == GITHUB_SOURCE_TYPE else None,
-        source_type=source_type,
-        source_path=source_key if source_type == LOCAL_SOURCE_TYPE else None,
-        source_layout=source_layout,
-        category=category,
-        skills=[skill.name for skill in found_skills],
-        version=version_resolved,
-        source=repo_url if source_type == GITHUB_SOURCE_TYPE else source_key,
-        last_updated=datetime.now(timezone.utc).isoformat(timespec="seconds"),
-    )
-    save_skills_lock(config, lock)
+    with skills_lock_session(config) as lock:
+        lock.sources[source_key] = SkillSource(
+            repo=f"{owner}/{repo_name}" if source_type == GITHUB_SOURCE_TYPE else None,
+            source_type=source_type,
+            source_path=source_key if source_type == LOCAL_SOURCE_TYPE else None,
+            source_layout=source_layout,
+            category=category,
+            skills=[skill.name for skill in found_skills],
+            version=version_resolved,
+            source=repo_url if source_type == GITHUB_SOURCE_TYPE else source_key,
+            last_updated=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        )
 
     if source_type == LOCAL_SOURCE_TYPE:
         print(
             f"✅ Successfully added {len(found_skills)} local skills from {source_display}"
         )
     else:
+        assert target_dir is not None
         print(
             f"✅ Successfully added {len(found_skills)} skills from {owner}/{repo_name} to [green]{rel_home(target_dir)}[/green]"
         )
 
     # Trigger sync with potential custom_dir
-    from .sync import sync_logic
+    from ..core.sync import sync_logic
 
     sync_logic(verbose=verbose_state.verbose, custom_dir=custom_dir, config=config)

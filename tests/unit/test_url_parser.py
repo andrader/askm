@@ -47,7 +47,7 @@ def test_github_urls():
 
 def test_short_formats(mock_path_exists):
     assert parse_repo_arg("owner/repo") == ("owner", "repo", None, None, False)
-    assert parse_repo_arg("owner/repo/") == ("owner", "repo", "", None, False)
+    assert parse_repo_arg("owner/repo/") == ("owner", "repo", None, None, False)
     assert parse_repo_arg("owner/repo/path/to/skill") == (
         "owner",
         "repo",
@@ -106,10 +106,10 @@ def test_edge_cases_and_bugs():
     # Empty version
     assert parse_repo_arg("owner/repo@") == ("owner", "repo", None, "", False)
 
-    # .git suffix (it keeps .git in the repo name currently)
+    # .git suffix (it now strips .git)
     assert parse_repo_arg("https://github.com/owner/repo.git") == (
         "owner",
-        "repo.git",
+        "repo",
         None,
         None,
         True,
