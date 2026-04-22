@@ -1,29 +1,7 @@
-import pytest
 from typer.testing import CliRunner
-from unittest.mock import patch
 from jup.main import app
-from jup.models import HarnessConfig
 
 runner = CliRunner()
-
-
-@pytest.fixture
-def mock_jup_dir(tmp_path):
-    jup_dir = tmp_path / ".jup"
-    jup_dir.mkdir()
-
-    mock_harnesses = {
-        ".agents": HarnessConfig(
-            name=".agents",
-            global_location=str(tmp_path / "global"),
-            local_location=str(tmp_path / "local"),
-        )
-    }
-
-    with patch("jup.config.JUP_CONFIG_DIR", jup_dir):
-        with patch("jup.config.DEFAULT_HARNESSES", mock_harnesses):
-            with patch("jup.models.DEFAULT_HARNESSES", mock_harnesses):
-                yield jup_dir
 
 
 def test_ls_alias(mock_jup_dir):

@@ -9,10 +9,7 @@ runner = CliRunner()
 
 
 @pytest.fixture
-def mock_jup_dedup_dir(tmp_path):
-    jup_dir = tmp_path / ".jup"
-    jup_dir.mkdir()
-
+def mock_jup_dedup_dir(mock_jup_dir, tmp_path):
     shared_global = tmp_path / "shared_global"
     shared_local = tmp_path / "shared_local"
     shared_global.mkdir()
@@ -41,10 +38,9 @@ def mock_jup_dedup_dir(tmp_path):
         ),
     }
 
-    with patch("jup.config.JUP_CONFIG_DIR", jup_dir):
-        with patch("jup.config.DEFAULT_HARNESSES", mock_harnesses):
-            with patch("jup.models.DEFAULT_HARNESSES", mock_harnesses):
-                yield jup_dir
+    with patch("jup.config.DEFAULT_HARNESSES", mock_harnesses):
+        with patch("jup.models.DEFAULT_HARNESSES", mock_harnesses):
+            yield mock_jup_dir
 
 
 @pytest.fixture
