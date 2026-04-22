@@ -35,11 +35,16 @@ To maintain high standards for the `jup` codebase and its evolution, the followi
 ## Project Overview
 
 *   **Purpose:** Centralized management of AI agent skills/tools.
-*   **Main Technologies:** Python 3.14+ (Target), `typer`, `pydantic` (v2), `rich`, and `uv`.
+*   **Main Technologies:** Python 3.12+ (Target), `typer`, `pydantic` (v2), `rich`, and `uv`.
 *   **Architecture:**
-    *   `src/jup/main.py`: Main entry point and configuration sub-commands (`jup config ...`).
-    *   `src/jup/commands/`: Package containing core CLI commands implementation (`add`, `remove`, `sync`, `list`, `show`, `find`).
-    *   `src/jup/config.py`: Handles `~/.jup` persistence, config files, and the skills lockfile.
+    *   `src/jup/main.py`: Main entry point and CLI registration.
+    *   `src/jup/context.py`: Shared CLI state (e.g., `verbose_state`).
+    *   `src/jup/core/`: Package containing core business logic:
+        *   `src/jup/core/sync.py`: Skill synchronization and filesystem orchestration.
+        *   `src/jup/core/filesystem.py`: Safe filesystem operations and path validation.
+        *   `src/jup/core/lock.py`: Atomic file locking for state management.
+    *   `src/jup/commands/`: CLI command implementation modules (decoupled from business logic).
+    *   `src/jup/config.py`: Handles `~/.jup` persistence, config files, and the skills lockfile with atomic writes.
     *   `src/jup/models.py`: Defines Pydantic models for configuration, skill sources, and the `DEFAULT_HARNESSES` registry.
     *   **Internal Storage:** Skills are cached/stored in `~/.jup/skills/` before being synced.
 
