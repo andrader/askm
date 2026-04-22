@@ -60,7 +60,7 @@ upload_to_release = true
 match = "main"
 prerelease = true
 prerelease_token = "beta"
-tag = false
+tag = true
 
 [tool.semantic_release.branches.release]
 match = "release"

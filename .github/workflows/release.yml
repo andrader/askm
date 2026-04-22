@@ -74,11 +74,17 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
+          # We need to save the current (updated) state of pyproject.toml and CHANGELOG
+          cp pyproject.toml /tmp/pyproject.toml
+          cp CHANGELOG.md /tmp/CHANGELOG.md
+          
           git checkout main
-          # Merge release into main, favoring main for conflicts but then
-          # explicitly taking the source-of-truth files from release
           git merge origin/release -X ours --no-edit
-          git checkout origin/release -- CHANGELOG.md pyproject.toml
+          
+          # Explicitly restore the updated files
+          cp /tmp/pyproject.toml pyproject.toml
+          cp /tmp/CHANGELOG.md CHANGELOG.md
+          
           git add CHANGELOG.md pyproject.toml
           git diff --cached --quiet || git commit -m "chore: sync release state to main"
           git push origin main
