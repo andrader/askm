@@ -74,24 +74,44 @@ def inject_metadata(skill_md_path: Path, repo_url: str, version: Optional[str]):
     if not skill_md_path.exists():
         return
     content = skill_md_path.read_text()
-    if content.startswith("---"):
-        lines = content.splitlines()
-        end_idx = -1
+    lines = content.splitlines()
+
+    has_frontmatter = False
+    end_idx = -1
+
+    if lines and lines[0] == "---":
         for i in range(1, len(lines)):
             if lines[i] == "---":
                 end_idx = i
+                has_frontmatter = True
                 break
-        if end_idx != -1:
-            lines.insert(end_idx, f"source: {repo_url}")
-            if version:
-                lines.insert(end_idx, f"version: {version}")
-            skill_md_path.write_text("\n".join(lines) + "\n")
+
+    if has_frontmatter:
+        new_lines = []
+        for i in range(1, end_idx):
+            if lines[i].startswith("source:") or lines[i].startswith("version:"):
+                continue
+            new_lines.append(lines[i])
+
+        new_lines.append(f"source: {repo_url}")
+        if version:
+            new_lines.append(f"version: {version}")
+
+        final_lines = ["---"] + new_lines + ["---"] + lines[end_idx + 1 :]
+        skill_md_path.write_text("\n".join(final_lines) + "\n")
     else:
         frontmatter = ["---", f"source: {repo_url}"]
         if version:
             frontmatter.append(f"version: {version}")
         frontmatter.extend(["---", ""])
-        skill_md_path.write_text("\n".join(frontmatter) + content)
+
+        # If the file had content, make sure we have a blank line between frontmatter and content
+        if content:
+            if not content.startswith("\n"):
+                frontmatter.append("")
+            skill_md_path.write_text("\n".join(frontmatter) + content)
+        else:
+            skill_md_path.write_text("\n".join(frontmatter))
 
 
 @app.command("add")
@@ -307,6 +327,6 @@ def add_skill(
         )
 
     # Trigger sync with potential custom_dir
-    from . import sync_skills
+    from .sync import sync_logic
 
-    sync_skills(verbose=verbose_state.verbose, custom_dir=custom_dir)
+    sync_logic(verbose=verbose_state.verbose, custom_dir=custom_dir, config=config)

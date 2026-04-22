@@ -15,7 +15,7 @@ from ..config import (
     get_skills_storage_dir,
 )
 from ..main import app, verbose_state
-from ..models import SyncMode
+from ..models import SyncMode, JupConfig
 from .utils import (
     GH_PREFIX,
     GITHUB_SOURCE_TYPE,
@@ -42,6 +42,7 @@ def sync_skills(
 ):
     """Update all links/copies in default-lib and for other harnesses."""
     verbose_state.verbose = verbose
+    # We cannot pass config here directly from CLI, it is meant for internal calls via sync_logic
     sync_logic(
         update=update, verbose=verbose, interactive=interactive, custom_dir=custom_dir
     )
@@ -59,8 +60,10 @@ def sync_logic(
     verbose: bool = False,
     interactive: bool = False,
     custom_dir: Optional[str] = None,
+    config: Optional[JupConfig] = None,
 ):
-    config = get_config()
+    if config is None:
+        config = get_config()
     lock = get_skills_lock(config)
     scope_dir = get_scope_dir(config)
 
