@@ -162,7 +162,7 @@ def config_unset(key: str = typer.Argument(..., help="Config key to unset")):
     }
     norm_key = key_map.get(key, key)
     if norm_key == "scope":
-        config.scope = ScopeType.GLOBAL
+        config.scope = ScopeType.USER
     elif norm_key == "harnesses":
         config.harnesses = []
     elif norm_key == "sync_mode":

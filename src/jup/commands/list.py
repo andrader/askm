@@ -45,7 +45,7 @@ def list_skills(
         scopes_to_check = [scope]
     else:
         # Show both by default if not specified
-        scopes_to_check = [ScopeType.GLOBAL, ScopeType.LOCAL]
+        scopes_to_check = [ScopeType.USER, ScopeType.LOCAL]
 
     installed_skills_data = []
     managed_skill_names = set()

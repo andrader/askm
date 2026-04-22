@@ -10,7 +10,7 @@ class SyncMode(StrEnum):
 
 
 class ScopeType(StrEnum):
-    GLOBAL = "global"
+    USER = "user"
     LOCAL = "local"
 
 
@@ -21,7 +21,7 @@ class HarnessConfig(BaseModel):
 
 
 class JupConfig(BaseModel):
-    scope: ScopeType = Field(default=ScopeType.GLOBAL)
+    scope: ScopeType = Field(default=ScopeType.USER)
     harnesses: List[str] = Field(default_factory=list)
     custom_harnesses: Dict[str, HarnessConfig] = Field(default_factory=dict)
     sync_mode: SyncMode = Field(default=SyncMode.LINK, alias="sync-mode")
@@ -36,6 +36,8 @@ class SkillSource(BaseModel):
     source_layout: Optional[str] = None
     category: Optional[str] = None
     skills: List[str] = Field(default_factory=list)
+    version: Optional[str] = None
+    source: Optional[str] = None
     last_updated: Optional[str] = None  # ISO format datetime
     last_install_date: Optional[datetime] = None
 
@@ -46,26 +48,36 @@ class SkillsLock(BaseModel):
 
 
 # Pre-defined registry of harnesses based on known paths, extensible later.
-# Includes support for Gemini, Copilot, Claude, and Codex.
+# Includes support for GitHub Copilot, Claude Code, Cursor, Codex, Gemini CLI, Antigravity.
 DEFAULT_HARNESSES: Dict[str, HarnessConfig] = {
-    "gemini": HarnessConfig(
-        name="gemini",
-        global_location="~/.gemini/skills",
-        local_location="./.gemini/skills",
-    ),
     "copilot": HarnessConfig(
         name="copilot",
         global_location="~/.copilot/skills",
-        local_location="./.copilot/skills",
+        local_location="./.agents/skills",
     ),
     "claude": HarnessConfig(
         name="claude",
         global_location="~/.claude/skills",
-        local_location="./.claude/skills",
+        local_location="./.agents/skills",
+    ),
+    "cursor": HarnessConfig(
+        name="cursor",
+        global_location="~/.cursor/skills",
+        local_location="./.agents/skills",
     ),
     "codex": HarnessConfig(
         name="codex",
-        global_location="~/.agents/skills",
+        global_location="~/.codex/skills",
+        local_location="./.agents/skills",
+    ),
+    "gemini": HarnessConfig(
+        name="gemini",
+        global_location="~/.gemini/skills",
+        local_location="./.agents/skills",
+    ),
+    "antigravity": HarnessConfig(
+        name="antigravity",
+        global_location="~/.gemini/antigravity/skills",
         local_location="./.agents/skills",
     ),
     ".agents": HarnessConfig(

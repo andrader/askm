@@ -29,7 +29,7 @@ def mock_jup_dir(tmp_path):
 def test_config_get_default(mock_jup_dir):
     result = runner.invoke(app, ["config", "get", "scope"])
     assert result.exit_code == 0
-    assert result.stdout.strip() == "global"
+    assert result.stdout.strip() == "user"
 
 
 def test_config_set_scope(mock_jup_dir):
