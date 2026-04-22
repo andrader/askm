@@ -14,7 +14,7 @@ from ..config import (
     get_skills_lock,
     get_skills_storage_dir,
 )
-from ..main import app, verbose_state
+from ..context import verbose_state
 from ..models import SyncMode, JupConfig
 from .utils import (
     GH_PREFIX,
@@ -25,7 +25,6 @@ from .utils import (
 )
 
 
-@app.command("sync")
 def sync_skills(
     update: Annotated[
         bool,
@@ -48,7 +47,6 @@ def sync_skills(
     )
 
 
-@app.command("up", hidden=True)
 def up_shortcut(verbose: bool = False):
     """Shortcut for jup sync --update"""
     verbose_state.verbose = verbose

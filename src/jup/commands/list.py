@@ -14,7 +14,6 @@ from ..config import (
     get_skills_lock,
     get_skills_storage_dir,
 )
-from ..main import app
 from ..models import ScopeType
 from .utils import (
     GH_PREFIX,
@@ -24,8 +23,6 @@ from .utils import (
 )
 
 
-@app.command("list")
-@app.command("ls", hidden=True)
 def list_skills(
     target: Optional[str] = typer.Argument(None, hidden=True),
     only_local: bool = typer.Option(
@@ -51,12 +48,12 @@ def list_skills(
         if target == "skills":
             pass
         elif target in ("agents", "agent", "harness", "harnesses"):
-            from ..main import harness_list
+            from .harness_cli import harness_list
 
             harness_list()
             return
         elif target == "config":
-            from ..main import config_show
+            from .config_cli import config_show
 
             config_show()
             return

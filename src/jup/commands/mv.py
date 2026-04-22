@@ -11,11 +11,10 @@ from ..config import (
     get_skills_storage_dir,
     save_skills_lock,
 )
-from ..main import app, verbose_state
+from ..context import verbose_state
 from .utils import GH_PREFIX, GITHUB_SOURCE_TYPE, LOCAL_SOURCE_TYPE, rel_home
 
 
-@app.command("mv")
 def move_skill(
     target: str = typer.Argument(..., help="Skill name or repository (owner/repo)"),
     new_destination: str = typer.Argument(
@@ -254,6 +253,6 @@ def move_skill(
         )
 
     # Trigger sync to update symlinks
-    from .sync import sync_skills
+    from .sync import sync_logic
 
-    sync_skills(verbose=verbose_state.verbose)
+    sync_logic(verbose=verbose_state.verbose)

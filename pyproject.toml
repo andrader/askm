@@ -84,7 +84,7 @@ exclude_commit_patterns = [
 ]
 
 [tool.ruff]
-exclude = ["templates"]
+exclude = ["templates", "repro"]
 
 [tool.ty.src]
 include = ["src", "tests"]

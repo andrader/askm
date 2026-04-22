@@ -1,17 +1,6 @@
 import typer
-from typing import Optional
 from importlib.metadata import version as get_version
-from enum import Enum
 from rich import print
-from .config import get_all_harnesses, get_config, save_config
-from .models import DEFAULT_HARNESSES, HarnessConfig, JupConfig, ScopeType, SyncMode
-
-
-class VerboseState:
-    verbose: bool = False
-
-
-verbose_state = VerboseState()
 
 
 BANNER = r"""
@@ -66,235 +55,36 @@ def main_callback(
         raise typer.Exit()
 
 
-config_app = typer.Typer(help="Manage configuration settings", no_args_is_help=True)
+from .commands.config_cli import app as config_app  # noqa: E402
+from .commands.harness_cli import app as harness_app  # noqa: E402
+
 app.add_typer(config_app, name="config")
-
-
-# Show all config values
-@config_app.command("show", short_help="Show all config values")
-def config_show():
-    """Display all configuration values."""
-    config = get_config()
-    from rich.table import Table
-
-    table = Table(title="Current Configuration")
-    table.add_column("Key", style="cyan", no_wrap=True)
-    table.add_column("Value", style="magenta")
-    for key in JupConfig.model_fields:
-        if key == "custom_harnesses":
-            continue
-        value = getattr(config, key)
-        if isinstance(value, list):
-            value_str = ", ".join(value) if value else "none"
-        elif hasattr(value, "value"):
-            value_str = value.value
-        else:
-            value_str = str(value)
-        table.add_row(key, value_str)
-    print(table)
-
-
-@config_app.command("get", short_help="Get a config value", no_args_is_help=True)
-def config_get(
-    key: str = typer.Argument(
-        ..., help="Config key to get (scope, harnesses, sync-mode)"
-    ),
-):
-    config = get_config()
-    # Normalize key
-    normalize_key_map = {"sync-mode": "sync_mode", "agents": "harnesses"}
-    norm_key = normalize_key_map.get(key, key)
-
-    if norm_key in JupConfig.model_fields:
-        value = getattr(config, norm_key)
-        if isinstance(value, list):
-            print(",".join(value) if value else "none")
-        else:
-            print(value.value if isinstance(value, Enum) else value)
-    else:
-        print(f"[red]Unknown config key: {key}[/red]")
-        raise typer.Exit(code=1)
-
-
-@config_app.command("set", short_help="Set a config value", no_args_is_help=True)
-def config_set(
-    key: str = typer.Argument(..., help="Config key to set"),
-    value: str = typer.Argument(..., help="Value to set"),
-):
-    config = get_config()
-    # Normalize key
-    key_map = {
-        "sync-mode": "sync_mode",
-        "sync_mode": "sync_mode",
-        "agents": "harnesses",
-    }
-    norm_key = key_map.get(key, key)
-    if norm_key not in JupConfig.model_fields:
-        print(f"[red]Unknown config key: {key}[/red]")
-        raise typer.Exit(code=1)
-    value = value.strip()
-    try:
-        if norm_key == "scope":
-            config.scope = ScopeType(value)
-        elif norm_key == "harnesses":
-            config.harnesses = (
-                [v.strip() for v in value.split(",")] if value.lower() != "none" else []
-            )
-        elif norm_key == "sync_mode":
-            config.sync_mode = SyncMode(value)
-        else:
-            print(f"[red]Unknown config key: {key}[/red]")
-            raise typer.Exit(code=1)
-        save_config(config)
-        print(f"Set {key} to {value}")
-    except ValueError:
-        print(f"[red]Invalid value for {key}: {value}[/red]")
-        raise typer.Exit(code=1)
-
-
-@config_app.command(
-    "unset", short_help="Unset a config value (revert to default)", no_args_is_help=True
-)
-def config_unset(key: str = typer.Argument(..., help="Config key to unset")):
-    config = get_config()
-    key_map = {
-        "sync-mode": "sync_mode",
-        "sync_mode": "sync_mode",
-        "agents": "harnesses",
-    }
-    norm_key = key_map.get(key, key)
-    if norm_key == "scope":
-        config.scope = ScopeType.USER
-    elif norm_key == "harnesses":
-        config.harnesses = []
-    elif norm_key == "sync_mode":
-        config.sync_mode = SyncMode.LINK
-    else:
-        print(f"[red]Unknown config key: {key}[/red]")
-        raise typer.Exit(code=1)
-    save_config(config)
-    print(f"Unset {key} (reverted to default)")
-
-
-harness_app = typer.Typer(help="Manage harness providers", no_args_is_help=True)
 app.add_typer(harness_app, name="harness")
 app.add_typer(harness_app, name="agent", hidden=True)
 app.add_typer(harness_app, name="agents", hidden=True)
 
 
-@harness_app.command("list")
-def harness_list():
-    """List all available harness providers."""
-    config = get_config()
-    all_harnesses = get_all_harnesses(config)
-    from rich.table import Table
-
-    table = Table(title="Harness Providers")
-    table.add_column("Name", style="magenta")
-    table.add_column("Global Location", style="cyan")
-    table.add_column("Local Location", style="cyan")
-    table.add_column("Type", style="yellow")
-
-    for name, harness in all_harnesses.items():
-        is_default = name in DEFAULT_HARNESSES
-        is_customized = name in config.custom_harnesses
-
-        if is_default:
-            harness_type = "[yellow]customized[/yellow]" if is_customized else "default"
-        else:
-            harness_type = "custom"
-
-        table.add_row(
-            name, harness.global_location, harness.local_location, harness_type
-        )
-    print(table)
-
-
-@harness_app.command("add")
-def harness_add(
-    name: str = typer.Argument(..., help="Harness name"),
-    global_location: str = typer.Option(
-        ...,
-        "--global-location",
-        "-g",
-        help="Global skills directory",
-        prompt="Global skills directory (e.g. ~/.gemini/skills)",
-    ),
-    local_location: str = typer.Option(
-        ...,
-        "--local-location",
-        "-l",
-        help="Local skills directory",
-        prompt="Local skills directory (e.g. ./.gemini/skills)",
-    ),
-):
-    """Add a new custom harness provider."""
-    config = get_config()
-    all_harnesses = get_all_harnesses(config)
-    if name in all_harnesses:
-        print(f"[red]Harness '{name}' already exists.[/red]")
-        raise typer.Exit(code=1)
-
-    harness = HarnessConfig(
-        name=name, global_location=global_location, local_location=local_location
-    )
-    config.custom_harnesses[name] = harness
-    save_config(config)
-    print(f"Added custom harness provider: [magenta]{name}[/magenta]")
-
-
-@harness_app.command("edit")
-def harness_edit(
-    name: str = typer.Argument(..., help="Harness name"),
-    global_location: Optional[str] = typer.Option(
-        None, "--global-location", "-g", help="Global skills directory"
-    ),
-    local_location: Optional[str] = typer.Option(
-        None, "--local-location", "-l", help="Local skills directory"
-    ),
-):
-    """Edit an existing custom harness provider."""
-    config = get_config()
-    if name in DEFAULT_HARNESSES:
-        print(f"[red]Cannot edit default harness '{name}'.[/red]")
-        raise typer.Exit(code=1)
-    if name not in config.custom_harnesses:
-        print(f"[red]Custom harness '{name}' does not exist.[/red]")
-        raise typer.Exit(code=1)
-
-    harness = config.custom_harnesses[name]
-    if global_location is not None:
-        harness.global_location = global_location
-    if local_location is not None:
-        harness.local_location = local_location
-
-    config.custom_harnesses[name] = harness
-    save_config(config)
-    print(f"Updated custom harness provider: [magenta]{name}[/magenta]")
-
-
-@harness_app.command("remove")
-def harness_remove(name: str = typer.Argument(..., help="Harness name")):
-    """Remove a custom harness provider."""
-    config = get_config()
-    if name not in config.custom_harnesses:
-        if name in DEFAULT_HARNESSES:
-            print(
-                f"[red]Cannot remove default harness '{name}' (it is not currently customized).[/red]"
-            )
-        else:
-            print(f"[red]Custom harness '{name}' does not exist.[/red]")
-        raise typer.Exit(code=1)
-
-    del config.custom_harnesses[name]
-    save_config(config)
-    print(
-        f"Removed custom harness provider: [magenta]{name}[/magenta] (reverted to default if applicable)"
-    )
-
-
 # Import command registrations after app and shared state are defined.
-from . import commands  # noqa: E402,F401
+from .commands.add import add_skill  # noqa: E402
+from .commands.remove import remove_skill  # noqa: E402
+from .commands.sync import sync_skills, up_shortcut  # noqa: E402
+from .commands.list import list_skills  # noqa: E402
+from .commands.show import show_skill  # noqa: E402
+from .commands.find import find_skills  # noqa: E402
+from .commands.mv import move_skill  # noqa: E402
+
+app.command("add")(add_skill)
+app.command("install", hidden=True)(add_skill)
+app.command("remove")(remove_skill)
+app.command("rm", hidden=True)(remove_skill)
+app.command("uninstall", hidden=True)(remove_skill)
+app.command("sync")(sync_skills)
+app.command("up", hidden=True)(up_shortcut)
+app.command("list")(list_skills)
+app.command("ls", hidden=True)(list_skills)
+app.command("show")(show_skill)
+app.command("find")(find_skills)
+app.command("mv")(move_skill)
 
 
 def main():

@@ -6,15 +6,15 @@
 ALWAYS use subagents for independent steps.
 ALWAYS follow the development workflow outlined below to ensure consistency, maintainability, and quality across the codebase. This workflow is designed to encourage thoughtful implementation, thorough testing, and clear documentation.
 
-## Phase 0: Project Mandates & Core Workflows
+## Mandates & Core Workflows
 To maintain high standards for the `jup` codebase and its evolution, the following mandates must be strictly followed:
 
+- **Conventional Commits**: All commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/) specification (e.g., `feat:`, `fix:`, `chore:`). Use `cz commit` when possible.
 - **Small, Clean Commits**: Each commit should address exactly one concern. Git history quality is a priority.
 - **Verification Before Action**: Run `just qa` (linting, type checking, and tests) before each commit to ensure no regressions.
-- **Confirm Before Pushing**: Always seek user confirmation before pushing any changes to remote branches.
 - **Precise Git Staging**: Never use `git add .` or `git add -A`. Manually add specific files or hunks for each commit.
+- **Confirm Before Pushing**: Always seek user confirmation before pushing any changes to remote branches.
 - **No Force Pushes**: Force pushing is prohibited unless explicitly requested by the user.
-- **Conventional Commits**: All commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/) specification (e.g., `feat:`, `fix:`, `chore:`). Use `cz commit` when possible.
 - **Patch Over Minor**: Prefer patch version updates (`0.x.y+1`) over minor version updates (`0.x+1.0`) whenever the change allows it.
 - **Adversarial Testing**: For every significant feature or fix, launch 3 parallel adversarial subagents to find edge cases, implementation flaws, and bugs.
 - **Maintain Documentation**: Keep this `AGENTS.md`, the implementation plan, and the `backlog/roadmap.md` updated throughout the development lifecycle.

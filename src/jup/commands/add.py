@@ -15,7 +15,7 @@ from ..config import (
     get_skills_storage_dir,
     save_skills_lock,
 )
-from ..main import app, verbose_state
+from ..context import verbose_state
 from ..models import SkillSource, ScopeType
 from .utils import (
     GH_PREFIX,
@@ -114,8 +114,6 @@ def inject_metadata(skill_md_path: Path, repo_url: str, version: Optional[str]):
             skill_md_path.write_text("\n".join(frontmatter))
 
 
-@app.command("add")
-@app.command("install", hidden=True)
 def add_skill(
     repo: str = typer.Argument(
         ...,
