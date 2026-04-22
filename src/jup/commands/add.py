@@ -37,15 +37,29 @@ def parse_repo_arg(repo_arg: str):
     - @version suffix on any of the above
     Returns (owner, repo, path, version, is_url) or None if local.
     """
+    if not repo_arg:
+        return None
+
+    # 1. Detect and ignore git SSH URLs (e.g. git@github.com:owner/repo.git)
+    if "@" in repo_arg and ":" in repo_arg and not repo_arg.startswith("http"):
+        return None
+
+    # 2. Extract version suffix (if any)
+    # We split only the LAST @ to avoid confusion with usernames in URLs (rare but possible)
+    # and to handle cases like owner/repo@v1 correctly.
     version = None
     if "@" in repo_arg and not repo_arg.startswith("@"):
-        parts = repo_arg.rsplit("@", 1)
-        repo_arg = parts[0]
-        version = parts[1]
+        # Ensure we don't pick up @ in the middle of a URL (e.g. auth)
+        if "://" not in repo_arg or repo_arg.find("@") > repo_arg.find("://") + 3:
+            parts = repo_arg.rsplit("@", 1)
+            repo_arg = parts[0]
+            version = parts[1]
 
-    if repo_arg.startswith("http://") or repo_arg.startswith("https://"):
+    # 3. Handle SSH and HTTP URLs
+    if repo_arg.startswith(("http://", "https://", "ssh://")):
         parsed = urllib.parse.urlparse(repo_arg)
         if parsed.netloc == "github.com":
+            # Normalize path: remove redundant slashes
             path_parts = [p for p in parsed.path.split("/") if p]
             if len(path_parts) >= 2:
                 owner = path_parts[0]
@@ -54,27 +68,30 @@ def parse_repo_arg(repo_arg: str):
                     repo = repo[:-4]
                 subpath = None
                 if len(path_parts) > 4 and path_parts[2] == "tree":
-                    # We ignore the branch part (path_parts[3]) for the subpath itself
-                    # but if version is not provided, we could use it. For now just extract path.
                     subpath = "/".join(path_parts[4:])
                     if not version:
                         version = path_parts[3]
                 return owner, repo, subpath, version, True
-    else:
-        # Check if it's owner/repo format
-        # Normalize: strip only trailing slashes
-        repo_arg_norm = repo_arg.rstrip("/")
-        parts = repo_arg_norm.split("/")
+        return None  # Not a supported GitHub URL
 
-        # If it starts with /, it's an absolute path, so it's local
-        if repo_arg.startswith("/"):
+    # 4. Handle shorthand owner/repo or local paths
+    # Normalize: strip only trailing slashes and collapse multiple slashes
+    repo_arg_norm = "/".join(p for p in repo_arg.split("/") if p)
+    if repo_arg.startswith("/"):
+        return None  # Absolute path is always local
+
+    parts = repo_arg_norm.split("/")
+    if len(parts) >= 2:
+        # Check if it exists locally FIRST to allow local shadowing if intended
+        # but only if it's a valid local path.
+        if Path(repo_arg).expanduser().exists():
             return None
 
-        if len(parts) >= 2 and not Path(repo_arg).expanduser().exists():
-            owner = parts[0]
-            repo = parts[1]
-            subpath = "/".join(parts[2:]) if len(parts) > 2 else None
-            return owner, repo, subpath, version, False
+        owner = parts[0]
+        repo = parts[1]
+        subpath = "/".join(parts[2:]) if len(parts) > 2 else None
+        return owner, repo, subpath, version, False
+
     return None
 
 
@@ -267,9 +284,11 @@ def add_skill(
 
             storage_base = get_skills_storage_dir()
             target_dir = storage_base / category / GH_PREFIX / owner / repo_name
-            validate_path(target_dir, storage_base)
             if version_resolved:
                 target_dir = target_dir.with_name(f"{repo_name}-{version_resolved}")
+
+            # CRITICAL: Validate path AFTER all modifications (including @version)
+            validate_path(target_dir, storage_base)
 
             if (skills_dir / "SKILL.md").exists():
                 all_skills = [skills_dir]

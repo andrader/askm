@@ -1,5 +1,7 @@
 from pathlib import Path
 import contextlib
+import tempfile
+import os
 from rich import print
 from .models import DEFAULT_HARNESSES, HarnessConfig, JupConfig, SkillsLock
 from .core.lock import LockFileManager
@@ -23,8 +25,12 @@ def save_config(config: JupConfig):
     try:
         JUP_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         config_file = JUP_CONFIG_DIR / "config.json"
-        with open(config_file, "w") as f:
-            f.write(config.model_dump_json(indent=4, by_alias=True))
+
+        # Atomic write: write to temp file then rename
+        with tempfile.NamedTemporaryFile("w", dir=JUP_CONFIG_DIR, delete=False) as tf:
+            tf.write(config.model_dump_json(indent=4, by_alias=True))
+            temp_name = tf.name
+        os.replace(temp_name, config_file)
     except PermissionError:
         print(
             f"[red]Error: Permission denied when saving config to {JUP_CONFIG_DIR}[/red]"
@@ -104,8 +110,12 @@ def save_skills_lock(config: JupConfig, lock: SkillsLock):
     try:
         lock_file = get_lockfile_path(config)
         lock_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(lock_file, "w") as f:
-            f.write(lock.model_dump_json(indent=4))
+
+        # Atomic write: write to temp file then rename
+        with tempfile.NamedTemporaryFile("w", dir=lock_file.parent, delete=False) as tf:
+            tf.write(lock.model_dump_json(indent=4))
+            temp_name = tf.name
+        os.replace(temp_name, lock_file)
     except PermissionError:
         print(
             f"[red]Error: Permission denied when saving skills lock to {lock_file}[/red]"
