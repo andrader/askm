@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.15.0-beta.2 (2026-04-22)
+
+### Bug Fixes
+
+- Update jup version in uv.lock
+  ([`cb24268`](https://github.com/andrader/jup/commit/cb24268508f972767d2dc055bb8203b1b12c380c))
+
+
 ## v0.15.0-beta.1 (2026-04-22)
 
 ### Bug Fixes
@@ -15,14 +23,6 @@
 
 - Add scope backward compatibility and improve list output robustness
   ([`64ef36d`](https://github.com/andrader/jup/commit/64ef36d3795e5a218bb9c9da1a82c61500add9db))
-
-### Continuous Integration
-
-- Fix back-sync release to main non-fast-forward issue
-  ([`38c52ed`](https://github.com/andrader/jup/commit/38c52edccda9b7beb180f5320e0af51417744d25))
-
-- Fix back-sync skip and improve stable changelog by disabling beta tags
-  ([`6ca85a3`](https://github.com/andrader/jup/commit/6ca85a3a28e15c662023e046a35fe60f3807df1b))
 
 ### Documentation
 
@@ -53,29 +53,11 @@
 - Rename global scope to user, add agent defaults and metadata fields
   ([`8f5294a`](https://github.com/andrader/jup/commit/8f5294a84056749ed8daea7cdd4502a5d7a3d3d7))
 
-### Testing
-
-- Add adversarial tests and fix deduplication, parser, and metadata bugs
-  ([`b567a0a`](https://github.com/andrader/jup/commit/b567a0a06f084bf66fc22cee0edc58a5a77ea7a9))
-
-- Isolate tests and prevent leaks to local environment
-  ([`ac43c56`](https://github.com/andrader/jup/commit/ac43c5664f112a2523b768389bac6e1a0aaef3ce))
-
 
 ## v0.14.0 (2026-04-21)
 
 
 ## v0.14.0-beta.1 (2026-04-21)
-
-### Chores
-
-- Reconcile main with latest release v0.13.1
-  ([`be69484`](https://github.com/andrader/jup/commit/be6948458f9fd7b8c38c2ed910c2758899a23c49))
-
-### Continuous Integration
-
-- Improve branch promotion and back-sync merge resilience
-  ([`0c7bd17`](https://github.com/andrader/jup/commit/0c7bd1737488a2ef3ce7ba243365eecf1722b7b9))
 
 ### Features
 
@@ -93,29 +75,8 @@
 - Handle git clone failure gracefully when repo is not found
   ([`1ceb65a`](https://github.com/andrader/jup/commit/1ceb65a5ddfdb966f398d8453d705bee39ba9e0d))
 
-### Continuous Integration
-
-- Add actions:write permission to promotion workflow
-  ([`c85e3e9`](https://github.com/andrader/jup/commit/c85e3e9280c65ec04910291a4557f003585418c9))
-
-- Change release promotion schedule to daily at 5am BRT
-  ([`16dec81`](https://github.com/andrader/jup/commit/16dec813706951ebd6c86a105c509fa20c048c2e))
-
-- Explicitly trigger release workflow in promotion job
-  ([`700b82a`](https://github.com/andrader/jup/commit/700b82a392f42e297d7da300d838bf4e3e7256e8))
-
 
 ## v0.13.0 (2026-04-20)
-
-### Chores
-
-- Reconcile main and release branches
-  ([`c52c3f1`](https://github.com/andrader/jup/commit/c52c3f1ec9489afb652438fd5ba1a276b933e20b))
-
-### Continuous Integration
-
-- Automate branch promotion and back-sync between main and release
-  ([`8d2f64e`](https://github.com/andrader/jup/commit/8d2f64e30e18ebe1008d8b85ebfa76a8e33589d7))
 
 
 ## v0.13.0-beta.2 (2026-04-20)
@@ -127,11 +88,6 @@
 
 
 ## v0.13.0-beta.1 (2026-04-20)
-
-### Chores
-
-- Bump version to 0.13.0-beta.1 and sync with stable
-  ([`6c9b842`](https://github.com/andrader/jup/commit/6c9b8425ed9f8676ed31e2409715cf12662e2f2e))
 
 
 ## v0.12.0-beta.4 (2026-04-20)
@@ -160,47 +116,6 @@
 - **ci**: Ensure labels exist and update permissions for weekly release PR
   ([`b685ae9`](https://github.com/andrader/jup/commit/b685ae97494b6406c862abe11a7970af7663da1e))
 
-### Chores
-
-- Add mkdocs deployment workflow
-  ([`5468348`](https://github.com/andrader/jup/commit/5468348baf9d1ca47216e02485a5d4952d9d7a66))
-
-- Add mkdocs.yml to repository
-  ([`0b18a4c`](https://github.com/andrader/jup/commit/0b18a4cd9e1225439a6eedc3eafb9b0e1f91dae9))
-
-- Clean up docs workflow
-  ([`f32e978`](https://github.com/andrader/jup/commit/f32e978bc8d53e9b57a4c34846f5afa7a2b8bb97))
-
-- Debug docs deployment and trigger on main
-  ([`de35e3e`](https://github.com/andrader/jup/commit/de35e3ee14565de85e79792186ee9f47f6a87ab0))
-
-- Migrate documentation stack from mkdocs to zensical
-  ([`016c975`](https://github.com/andrader/jup/commit/016c975df607522121ebf94358c62b05d6c00f03))
-
-- Update jup package version to 0.12.0b1
-  ([`85e672a`](https://github.com/andrader/jup/commit/85e672ac83336b686377a6d2c28fd3c70cc73655))
-
-- Update setup-uv action to v8 and remove Python setup step
-  ([`ef29e16`](https://github.com/andrader/jup/commit/ef29e1656b2f8df934b10a90458daed2ebfa252e))
-
-- Use explicit config path for mkdocs deployment
-  ([`25988f1`](https://github.com/andrader/jup/commit/25988f199044c61ae1696c92006ee9ff8adcff68))
-
-- **ci**: Add --quiet and --frozen flags to uv commands
-  ([`ba4d9ac`](https://github.com/andrader/jup/commit/ba4d9ac045f5058ad6133df13d7029a1b7928c7c))
-
-- **ci**: Re-enable automated PyPI publishing
-  ([`91d5c24`](https://github.com/andrader/jup/commit/91d5c241af772a2210cd54ab9b30439e2753d2a7))
-
-- **ci**: Refactor release workflow to use local semantic-release and explicit build steps
-  ([`5811f76`](https://github.com/andrader/jup/commit/5811f7628e09295a4d1bde6ef3389744e520e2f0))
-
-- **ci**: Replace create-pull-request action with gh cli
-  ([`a592366`](https://github.com/andrader/jup/commit/a59236656e82969980c94b18efbb11fbc035d7a7))
-
-- **ci**: Split semantic-release version/publish and PyPI build/publish steps
-  ([`6db5208`](https://github.com/andrader/jup/commit/6db5208ba3ba59d2b136a463813fb80c113f6f0d))
-
 ### Documentation
 
 - Add site_url to mkdocs.yml
@@ -224,14 +139,6 @@
 
 ## v0.12.0 (2026-04-17)
 
-### Chores
-
-- Enable multi-branch release support
-  ([`c4b4f4a`](https://github.com/andrader/jup/commit/c4b4f4ab3bca22467c2171af7ae9de767974c852))
-
-- Setup beta/stable branch workflow and weekly release PR
-  ([`ef9705b`](https://github.com/andrader/jup/commit/ef9705b343879cadfa7e7a6beb70fe075d1a56f0))
-
 ### Features
 
 - Trigger beta release for multi-branch support
@@ -253,34 +160,6 @@
 
 - **sync**: Prevent self-deletion when source is in target agent dir
   ([`3839040`](https://github.com/andrader/jup/commit/3839040a8b1d0c5f4bdde31a790fedc412261a73))
-
-### Chores
-
-- Add beta release config and update roadmap
-  ([`3a2cb05`](https://github.com/andrader/jup/commit/3a2cb052b2ed07a03c023d037bc13d11cfaa298d))
-
-- Ignore .worktrees directory
-  ([`c301f13`](https://github.com/andrader/jup/commit/c301f136f347638615df923cc7569a02707e605f))
-
-- Setup mkdocs, update ty config, and fix QA diagnostics
-  ([`fb1851f`](https://github.com/andrader/jup/commit/fb1851f03e9f9ce82668a7989860d650137ba778))
-
-### Code Style
-
-- **list**: Color entire location red when broken or missing
-  ([`a42ef9a`](https://github.com/andrader/jup/commit/a42ef9adfd64d13d68faad8ab45cda991aa78225))
-
-- **list**: Revert to clean table style without horizontal lines
-  ([`20577cd`](https://github.com/andrader/jup/commit/20577cd8ecc8e1476d27dd481c0574882d879068))
-
-- **list**: Simplify output by removing redundant installed icon
-  ([`8b0b370`](https://github.com/andrader/jup/commit/8b0b370dc41c1ba76c78980b3f631426b1ef21e5))
-
-- **list**: Use ⛓️‍💥 as the primary symbol for broken links
-  ([`088b48d`](https://github.com/andrader/jup/commit/088b48dd83e8a953c56a30c409261864270fa042))
-
-- **list**: Use ⛓️‍💥 for broken links
-  ([`26cf650`](https://github.com/andrader/jup/commit/26cf650e1ab94cff3a90e7ee0ff7abd48f389d06))
 
 ### Documentation
 
@@ -322,11 +201,6 @@ This includes jup up, jup sync -i, jup mv --rename/--to-remote, and the new arch
 
 ## v0.10.0 (2026-04-17)
 
-### Chores
-
-- Ignore docs/superpowers and update gitignore
-  ([`65b9517`](https://github.com/andrader/jup/commit/65b9517dc3b2e5318cfec72893c51c2ec306dbff))
-
 ### Documentation
 
 - Add jup skill definition
@@ -348,16 +222,6 @@ This includes jup up, jup sync -i, jup mv --rename/--to-remote, and the new arch
 
 - **mv**: Support moving skills to arbitrary filesystem paths
   ([`0e71707`](https://github.com/andrader/jup/commit/0e717072e57050dc4b5aad8ccc56a42df50b9ddd))
-
-### Refactoring
-
-- Modularize commands into jup.commands package
-  ([`1256963`](https://github.com/andrader/jup/commit/125696361fb8ba442cf71d38a985c411d859dcbe))
-
-### Testing
-
-- Update test mocks for modularized commands package
-  ([`2681379`](https://github.com/andrader/jup/commit/268137945d7e3c508a26703decb1392e69e793d8))
 
 
 ## v0.9.1 (2026-04-16)
@@ -433,11 +297,6 @@ This includes jup up, jup sync -i, jup mv --rename/--to-remote, and the new arch
 - **cli**: Improve version callback documentation
   ([`ce89279`](https://github.com/andrader/jup/commit/ce892798163c72fbd2ca0b6aea63a0f474a499a1))
 
-### Continuous Integration
-
-- Add workflow_dispatch to release workflow
-  ([`f0dcc6e`](https://github.com/andrader/jup/commit/f0dcc6e53a293196b44a8dc3fc520d01e09edd95))
-
 ### Documentation
 
 - Update README with features
@@ -480,21 +339,6 @@ This includes jup up, jup sync -i, jup mv --rename/--to-remote, and the new arch
 
 
 ## v0.3.3 (2026-04-14)
-
-### Chores
-
-- Update dependencies for ruff, ty, commitizen, and semantic-release
-  ([`e55c5df`](https://github.com/andrader/jup/commit/e55c5df93761ba05e5f1a1fd90650ecb998b9ad4))
-
-### Code Style
-
-- Fix linting errors across codebase
-  ([`da7ce54`](https://github.com/andrader/jup/commit/da7ce54efbe1f58cc7a2863fb1047b6a6b4f7c74))
-
-### Continuous Integration
-
-- Add modern tooling and automated release workflow
-  ([`00e47f0`](https://github.com/andrader/jup/commit/00e47f041f4e740b78de969b6aac8aac7a844510))
 
 ### Documentation
 
