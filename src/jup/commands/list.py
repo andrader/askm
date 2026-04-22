@@ -226,6 +226,10 @@ def list_skills(
     table.add_column("Last Updated", style="white")
 
     for skill in installed_skills_data:
+        skill_display = skill["name"]
+        if skill.get("version"):
+            skill_display += f" [dim]@{skill['version']}[/dim]"
+
         status_lines = []
         for harness_name, info in skill["status"].items():
             symbol = "🔗" if info["is_symlink"] else "📁"
@@ -252,9 +256,8 @@ def list_skills(
         )
         if skill["source_type"] == GITHUB_SOURCE_TYPE:
             repo_text = Text("🌐 ", style="white")
-            repo_text.append(
-                repo_display, style=f"cyan link https://github.com/{repo_display}"
-            )
+            url = skill.get("source") or f"https://github.com/{repo_display}"
+            repo_text.append(repo_display, style=f"cyan link {url}")
             if source_gone_symbol:
                 repo_text.append(" ⚠️", style="bold red")
             repo_display = repo_text
@@ -269,7 +272,7 @@ def list_skills(
 
         table.add_row(
             skill["scope"].capitalize(),
-            skill["name"],
+            skill_display,
             repo_display,
             status_str,
             str(last_updated),
