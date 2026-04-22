@@ -11,40 +11,51 @@
 ## Usage Instructions
 
 ### Adding Skills
-You can add skills from GitHub or local paths.
+You can add skills from GitHub repositories, URLs, or local paths.
 
-- **GitHub**: `jup add owner/repo --category category-name`
-  - Fallback: If `skills/` is missing, it checks `.claude/skills/`.
-  - Specific path: `jup add owner/repo --path custom/path`
-  - Specific skills: `jup add owner/repo --skills skill-a,skill-b`
-- **Local**: `jup add /path/to/local/skills` (Supports single skill or collection layouts).
+- **GitHub Repository**: `jup add owner/repo`
+- **GitHub URL**: `jup add https://github.com/owner/repo/tree/branch/path`
+- **Versioning**: `jup add owner/repo@v1.0.0` (Supports tags, SHAs, or branches).
+- **Exact Path**: `jup add owner/repo/path/to/skill` (Faster installation for large repos).
+- **Targeting**:
+  - `--agent (-a) name`: Install to specific agent(s).
+  - `--scope user|local`: Set target scope.
+  - `--dir path`: Install to a custom directory (overrides agent/scope).
+- **Options**:
+  - `--category (-c) name`: Category (default: `misc`).
+  - `--skills name1,name2`: Select specific skills from a collection.
 
 ### Listing Skills
-Check the status of your skills:
-- `jup list`: Shows installed skills, their origins, and whether they are present in configured agent directories.
-- `jup list --json`: Outputs the status in machine-readable format.
-- `jup list --only-local` / `--remote`: Filters the list.
+Check the status of your skills with flexible aliases:
+- `jup list` or `jup ls`: Shows installed skills, versions, and origins.
+- `jup ls skills`: Alias for `jup list`.
+- `jup ls agents` or `jup ls agent`: Lists configured harness providers.
+- `jup ls config`: Shows current configuration.
+- `jup list --json`: Outputs status in clean, machine-readable format.
 
 ### Syncing
 Push your managed skills to agents:
 - `jup sync`: Updates all links/copies in configured agent directories.
-- `jup sync --update`: Checks GitHub for updates to your installed skills.
+- `jup sync --update` (or `jup up`): Checks GitHub for updates.
 
 ### Searching Registry
 - `jup find query`: Search the `skills.sh` registry.
 - `jup find query -it`: Interactive mode to preview and install skills.
 
 ### Configuration
-Manage which agents receive skills:
-- `jup config show`: View current settings.
-- `jup config set agents gemini,copilot`: Choose target agents.
+Manage your environment:
+- `jup config show`: View current settings (renamed `global` scope to `user`).
 - `jup config set sync-mode copy`: Switch from symlinks to file copies.
 
 ## Agent Specifics
-`jup` has built-in paths for:
+`jup` supports built-in paths for:
 - `gemini`: `~/.gemini/skills`
 - `copilot`: `~/.copilot/skills`
 - `claude`: `~/.claude/skills`
+- `cursor`: `~/.cursor/skills`
+- `codex`: `~/.codex/skills`
+- `antigravity`: `~/.gemini/antigravity/skills`
 - `default`: `~/.agents/skills`
 
 You can add custom agents with `jup agent add`.
+

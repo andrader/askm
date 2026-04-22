@@ -4,15 +4,16 @@
 
 It helps you:
 
-- install skills from GitHub repositories that expose a top-level `skills/` folder (or `.claude/skills/` as a fallback)
-- keep installed skills organized in a lockfile so they can be synced again later
-- copy or link skills into the directories used by agents like Gemini, Copilot, and Claude
+- install skills from GitHub repositories (via name, URL, or exact path)
+- keep installed skills organized in a lockfile with version tracking
+- copy or link skills into directories for Gemini, Copilot, Claude, Cursor, and more
 
 ## Features ✨
 
-- **Multi-Agent Support**: Sync skills for Gemini, Copilot, and Claude.
-- **Local-First**: Works with local skill directories and global configurations.
-- **Git Integration**: Install and update skills directly from GitHub.
+- **Multi-Agent Support**: Sync skills for Gemini, Copilot, Claude, Cursor, Codex, and Antigravity.
+- **Smart Parsing**: Install via `owner/repo`, full GitHub URLs, or exact paths for faster setup.
+- **Flexible Scope**: Manage skills at the `user` (formerly global) or `local` project level.
+- **CLI Aliases**: Faster workflow with `ls`, `up`, `install`, and `agent` aliases.
 
 ## Quick Start 🚀
 
@@ -25,35 +26,29 @@ uv tool install jup
 jup --help
 ```
 
-If you do not want to install it, you can run it on demand:
-
-```bash
-uvx jup --help
-```
-
-`pip` also works if you prefer a traditional install:
-
-```bash
-pip install jup
-jup --help
-```
-
 ### 2. Check the current configuration ⚙️
 
 ```bash
-jup config show
+jup ls config
 ```
 
 ### 3. Choose which agent directories should receive synced skills 🤖
 
 ```bash
-jup config set agents gemini,copilot,claude
+jup config set agents gemini,cursor,claude
 ```
 
 ### 4. Add skills ➕
 
 ```bash
+# Via shorthand
 jup add owner/repo --category productivity
+
+# Via URL
+jup add https://github.com/kepano/obsidian-skills/tree/main/skills/obsidian-cli
+
+# Pin to a version
+jup add owner/repo@v1.0.0
 ```
 
 #### Search for skills 🔍
@@ -67,13 +62,13 @@ jup find instagram --interactive
 ### 5. Review and update skills 📋
 
 ```bash
-jup list
+jup ls
 ```
 
 #### Check for updates and apply them
 
 ```bash
-jup sync --update
+jup up
 ```
 
 ### 6. Push the managed skills into the configured agent directories 🔄

@@ -4,6 +4,14 @@
 
 ## Current Backlog
 
+- [x] **Smart URL Parsing**: Support full GitHub URLs (e.g., `https://github.com/owner/repo/tree/main/skills/skill-name`).
+- [x] **Exact Path Installation**: Support passing an exact path `owner/repo/skills/my-skill` to avoid full tree traversal.
+- [x] **Target Selection Flags**: Add `--agent`, `--scope`, and `--dir` flags for fine-grained installation control.
+- [x] **Skill Versioning**: Support `@version` resolution (tags, commit SHA, then HEAD) during installation.
+- [x] **Metadata Injection**: Inject source tracking metadata (repo URL, version) into `SKILL.md` frontmatter upon installation.
+- [x] **Agent Aliases**: Add global aliases (`jup ls`, `jup install`, `jup rm`) and `agent`/`agents` for `harness`.
+- [x] **Updated Agents Registry**: Add defaults for Copilot, Cursor, Codex, and Antigravity.
+- [x] **Scope Renaming**: Transition from "Global" scope terminology to "User" scope.
 - [ ] **Remote Update Checks**: Check for remote skill updates (via git hash/date) once a day and show in `jup list` table.
 - [ ] **Registry Integration**: Deeper integration with `skills.sh` for better discovery and versioning.
 - [x] **Beta/Prerelease Workflow**: Configure beta/prerelease workflows with `python-semantic-release`. (Branch configured)

@@ -35,7 +35,7 @@ def mock_jup_dir(tmp_path):
 def test_get_config_default(mock_jup_dir):
     config = get_config()
     assert isinstance(config, JupConfig)
-    assert config.scope == ScopeType.GLOBAL
+    assert config.scope == ScopeType.USER
 
 
 def test_save_and_get_config(mock_jup_dir):
@@ -51,7 +51,7 @@ def test_save_and_get_config(mock_jup_dir):
 
 
 def test_get_scope_dir(mock_jup_dir, tmp_path):
-    config_global = JupConfig(scope=ScopeType.GLOBAL)
+    config_global = JupConfig(scope=ScopeType.USER)
     assert get_scope_dir(config_global) == tmp_path / "global"
 
     config_local = JupConfig(scope=ScopeType.LOCAL)
@@ -65,7 +65,7 @@ def test_get_skills_storage_dir(mock_jup_dir):
 
 
 def test_get_lockfile_path(mock_jup_dir, tmp_path):
-    config_global = JupConfig(scope=ScopeType.GLOBAL)
+    config_global = JupConfig(scope=ScopeType.USER)
     assert get_lockfile_path(config_global) == tmp_path / "global" / "skills.lock"
 
     config_local = JupConfig(scope=ScopeType.LOCAL)

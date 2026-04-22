@@ -1,8 +1,10 @@
 import shutil
 import subprocess
 import tempfile
+import urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich import print
@@ -14,7 +16,7 @@ from ..config import (
     save_skills_lock,
 )
 from ..main import app, verbose_state
-from ..models import SkillSource
+from ..models import SkillSource, ScopeType
 from .utils import (
     GH_PREFIX,
     LOCAL_SOURCE_TYPE,
@@ -25,34 +27,132 @@ from .utils import (
 )
 
 
+def parse_repo_arg(repo_arg: str):
+    """
+    Parses the repo argument.
+    Supports:
+    - https://github.com/owner/repo
+    - https://github.com/owner/repo/tree/main/path/to/skill
+    - owner/repo
+    - owner/repo/path/to/skill
+    - @version suffix on any of the above
+    Returns (owner, repo, path, version, is_url) or None if local.
+    """
+    version = None
+    if "@" in repo_arg and not repo_arg.startswith("@"):
+        parts = repo_arg.rsplit("@", 1)
+        repo_arg = parts[0]
+        version = parts[1]
+
+    if repo_arg.startswith("http://") or repo_arg.startswith("https://"):
+        parsed = urllib.parse.urlparse(repo_arg)
+        if parsed.netloc == "github.com":
+            path_parts = [p for p in parsed.path.split("/") if p]
+            if len(path_parts) >= 2:
+                owner = path_parts[0]
+                repo = path_parts[1]
+                subpath = None
+                if len(path_parts) > 4 and path_parts[2] == "tree":
+                    # We ignore the branch part (path_parts[3]) for the subpath itself
+                    # but if version is not provided, we could use it. For now just extract path.
+                    subpath = "/".join(path_parts[4:])
+                    if not version:
+                        version = path_parts[3]
+                return owner, repo, subpath, version, True
+    else:
+        # Check if it's owner/repo format
+        parts = repo_arg.split("/")
+        if len(parts) >= 2 and not Path(repo_arg).expanduser().exists():
+            owner = parts[0]
+            repo = parts[1]
+            subpath = "/".join(parts[2:]) if len(parts) > 2 else None
+            return owner, repo, subpath, version, False
+    return None
+
+
+def inject_metadata(skill_md_path: Path, repo_url: str, version: Optional[str]):
+    if not skill_md_path.exists():
+        return
+    content = skill_md_path.read_text()
+    lines = content.splitlines()
+
+    has_frontmatter = False
+    end_idx = -1
+
+    if lines and lines[0] == "---":
+        for i in range(1, len(lines)):
+            if lines[i] == "---":
+                end_idx = i
+                has_frontmatter = True
+                break
+
+    if has_frontmatter:
+        new_lines = []
+        for i in range(1, end_idx):
+            if lines[i].startswith("source:") or lines[i].startswith("version:"):
+                continue
+            new_lines.append(lines[i])
+
+        new_lines.append(f"source: {repo_url}")
+        if version:
+            new_lines.append(f"version: {version}")
+
+        final_lines = ["---"] + new_lines + ["---"] + lines[end_idx + 1 :]
+        skill_md_path.write_text("\n".join(final_lines) + "\n")
+    else:
+        frontmatter = ["---", f"source: {repo_url}"]
+        if version:
+            frontmatter.append(f"version: {version}")
+        frontmatter.extend(["---", ""])
+
+        # If the file had content, make sure we have a blank line between frontmatter and content
+        if content:
+            if not content.startswith("\n"):
+                frontmatter.append("")
+            skill_md_path.write_text("\n".join(frontmatter) + content)
+        else:
+            skill_md_path.write_text("\n".join(frontmatter))
+
+
 @app.command("add")
+@app.command("install", hidden=True)
 def add_skill(
     repo: str = typer.Argument(
         ...,
-        help="GitHub repository (owner/repo) or local skills directory. For GitHub, if the skills directory is missing, jup will also look for .claude/skills/ as a fallback.",
+        help="GitHub repository (owner/repo), URL, or local directory. Can include @version.",
     ),
     category: str = typer.Option(
         "misc", "--category", help="Category for the skill (e.g., productivity/custom)"
     ),
     path: str = typer.Option(
-        "skills/",
+        None,
         "--path",
-        help="[GitHub only] Path to skills directory in the repo (default: skills/). If not found, .claude/skills/ is tried as a fallback.",
+        help="[GitHub only] Path to skills directory in the repo.",
     ),
     skills: str = typer.Option(
         None,
         "--skills",
         help="[GitHub only] Comma-separated list of skill names to add (default: all)",
     ),
+    agent: str = typer.Option(
+        None,
+        "--agent",
+        "-a",
+        help="Comma-separated agents to install to (overrides config.harnesses)",
+    ),
+    scope: ScopeType = typer.Option(
+        None,
+        "--scope",
+        help="Target scope (user or local)",
+    ),
+    custom_dir: str = typer.Option(
+        None,
+        "--dir",
+        help="Install to a custom directory (overrides --agent and --scope)",
+    ),
     verbose: bool = False,
 ):
-    """Install skills from a GitHub repository (optionally using --path/--skills) or a local directory.
-
-    For GitHub sources, you can:
-    - Use --path to specify a subdirectory under the repo (default: skills/)
-    - Use --skills to select specific skill names (comma-separated) to add from the skills directory
-    - Both options are ignored for local sources (paths or directories)
-    """
+    """Install skills from a GitHub repository or a local directory."""
     verbose_state.verbose = verbose
     source_type = GITHUB_SOURCE_TYPE
     source_layout = None
@@ -60,14 +160,20 @@ def add_skill(
     source_display = repo
     found_skills: list[Path] = []
     target_dir: Path | None = None
-
-    local_path = Path(repo).expanduser()
-    is_local_source = local_path.exists()
     config = get_config()
 
-    if is_local_source:
-        if not local_path.is_dir():
-            print(f"[red]Local source must be a directory: {repo}[/red]")
+    if scope:
+        config.scope = scope
+    if agent:
+        config.harnesses = [a.strip() for a in agent.split(",")]
+
+    parsed_repo = parse_repo_arg(repo)
+    if not parsed_repo:
+        local_path = Path(repo).expanduser()
+        if not local_path.exists() or not local_path.is_dir():
+            print(
+                f"[red]Local source must be an existing directory or invalid repo format: {repo}[/red]"
+            )
             raise typer.Exit(code=1)
 
         resolved_local = local_path.resolve()
@@ -76,13 +182,11 @@ def add_skill(
             print(
                 f"[yellow]Source is inside a harness directory ({harness_name}).[/yellow]"
             )
-
             if typer.confirm(
                 "Move to central storage? (Recommended for management)", default=True
             ):
                 storage_base = get_skills_storage_dir()
                 new_path = storage_base / category / resolved_local.name
-
                 if new_path.exists():
                     print(
                         f"[red]Destination {rel_home(new_path)} already exists. Aborting move.[/red]"
@@ -95,7 +199,6 @@ def add_skill(
 
         source_type = LOCAL_SOURCE_TYPE
         source_key = str(resolved_local)
-        source_display = rel_home(resolved_local)
 
         if (resolved_local / "SKILL.md").exists():
             source_layout = "single"
@@ -107,66 +210,68 @@ def add_skill(
                     found_skills.append(item)
 
         if verbose_state.verbose:
-            print(
-                f"Found {len(found_skills)} local skills from [cyan]{source_display}[/cyan]:\n\t"
-                + ", ".join(f"[blue]{skill.name}[/blue]" for skill in found_skills)
-            )
+            print(f"Found {len(found_skills)} local skills.")
         if not found_skills:
-            print(
-                "[red]No skills found. Provide either a skill directory with SKILL.md or a directory containing skill subdirectories with SKILL.md.[/red]"
-            )
+            print("[red]No skills found.[/red]")
             raise typer.Exit(code=1)
+        version_resolved = None
+        repo_url = None
     else:
-        if "/" not in repo:
-            print("[red]Repository must be in format 'owner/repo'[/red]")
-            raise typer.Exit(code=1)
+        owner, repo_name, parsed_path, version_resolved, is_url = parsed_repo
+        repo_url = f"https://github.com/{owner}/{repo_name}.git"
 
-        owner, repo_name = repo.split("/", 1)
-        repo_url = f"https://github.com/{repo}.git"
+        if parsed_path and not path:
+            path = parsed_path
+
+        source_key = f"{owner}/{repo_name}"
+        if path:
+            source_key += f"/{path}"
+        if version_resolved:
+            source_key += f"@{version_resolved}"
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
-            print(f"Cloning {repo_url} to {rel_home(temp_path)}...")
+            print(f"Cloning {repo_url}...")
             try:
-                run_git_clone(repo_url, temp_path, depth=1)
+                if version_resolved:
+                    run_git_clone(repo_url, temp_path, branch=version_resolved, depth=1)
+                else:
+                    run_git_clone(repo_url, temp_path, depth=1)
             except subprocess.CalledProcessError:
-                # Error message already printed by run_git_clone
                 raise typer.Exit(code=1)
 
-            # Support both default and custom subdirectory for skills
             skills_dir = temp_path / path if path else temp_path / "skills"
             fallback_skills_dir = temp_path / ".claude" / "skills"
+
             if not skills_dir.exists() or not skills_dir.is_dir():
-                # Try fallback only if path was not explicitly provided or was default 'skills/'
                 if (
                     (not path or path == "skills/")
                     and fallback_skills_dir.exists()
                     and fallback_skills_dir.is_dir()
                 ):
                     skills_dir = fallback_skills_dir
-                    if verbose_state.verbose:
-                        print(
-                            f"[yellow]Falling back to .claude/skills/ in {repo}[/yellow]"
-                        )
+                elif (temp_path / "SKILL.md").exists() and not path:
+                    # The root of the repo is the skill
+                    skills_dir = temp_path
                 else:
-                    # If the directory doesn't exist, it might be that the repo root is the skill dir
-                    # but only if path was not explicitly set or if it was set to something that doesn't exist.
-                    pass
+                    print(
+                        f"[red]Skills directory not found at {path or 'skills/'}[/red]"
+                    )
+                    raise typer.Exit(code=1)
 
             storage_base = get_skills_storage_dir()
             target_dir = storage_base / category / GH_PREFIX / owner / repo_name
+            if version_resolved:
+                target_dir = target_dir.with_name(f"{repo_name}-{version_resolved}")
 
-            # Check if skills_dir itself is a skill (has SKILL.md)
             if (skills_dir / "SKILL.md").exists():
                 all_skills = [skills_dir]
                 source_layout = "single"
             else:
                 source_layout = "collection"
-                all_skills = [
-                    item
-                    for item in skills_dir.iterdir()
-                    if item.is_dir() and (item / "SKILL.md").exists()
-                ]
+                # Support skills/*/SKILL.md discovery
+                all_skills = [item for item in skills_dir.glob("*/SKILL.md")]
+                all_skills = [item.parent for item in all_skills]
 
             if skills:
                 selected = set(s.strip() for s in skills.split(",") if s.strip())
@@ -174,37 +279,40 @@ def add_skill(
             else:
                 found_skills = all_skills
 
-            if verbose_state.verbose:
-                print(
-                    f"Found {len(found_skills)} skills at [cyan]{rel_home(target_dir)}[/cyan]:\n\t"
-                    + ", ".join(f"[blue]{skill.name}[/blue]" for skill in found_skills)
-                )
             if not found_skills:
-                print(
-                    f"[red]No skills found inside the '{path}' directory matching selection.[/red]"
-                )
+                print("[red]No skills found matching selection.[/red]")
                 raise typer.Exit(code=1)
 
             if target_dir.exists():
-                print(f"Overwriting existing directory at {rel_home(target_dir)}...")
                 shutil.rmtree(target_dir)
+            target_dir.mkdir(parents=True, exist_ok=True)
 
             for skill in found_skills:
-                dest_skill_dir = target_dir / skill.name
+                dest_skill_dir = (
+                    target_dir / skill.name
+                    if source_layout == "collection"
+                    else target_dir
+                )
+                if source_layout == "single" and target_dir.exists():
+                    shutil.rmtree(target_dir)  # clear if exist
                 shutil.copytree(skill, dest_skill_dir)
+                inject_metadata(dest_skill_dir / "SKILL.md", repo_url, version_resolved)
 
-            if verbose_state.verbose:
-                print(f"Copied skills to [cyan]{rel_home(target_dir)}[/cyan]")
+            if source_layout == "single":
+                # Ensure found_skills points to the destination target_dir so lockfile stores correct name
+                found_skills = [target_dir]
 
     lock = get_skills_lock(config)
 
     lock.sources[source_key] = SkillSource(
-        repo=repo,
+        repo=f"{owner}/{repo_name}" if source_type == GITHUB_SOURCE_TYPE else None,
         source_type=source_type,
         source_path=source_key if source_type == LOCAL_SOURCE_TYPE else None,
         source_layout=source_layout,
         category=category,
         skills=[skill.name for skill in found_skills],
+        version=version_resolved,
+        source=repo_url if source_type == GITHUB_SOURCE_TYPE else source_key,
         last_updated=datetime.now(timezone.utc).isoformat(timespec="seconds"),
     )
     save_skills_lock(config, lock)
@@ -215,10 +323,10 @@ def add_skill(
         )
     else:
         print(
-            f"✅ Successfully added {len(found_skills)} skills from {repo} to [green]{rel_home(target_dir)}[/green]"
+            f"✅ Successfully added {len(found_skills)} skills from {owner}/{repo_name} to [green]{rel_home(target_dir)}[/green]"
         )
 
-    # Trigger sync
-    from . import sync_skills
+    # Trigger sync with potential custom_dir
+    from .sync import sync_logic
 
-    sync_skills(verbose=verbose_state.verbose)
+    sync_logic(verbose=verbose_state.verbose, custom_dir=custom_dir, config=config)

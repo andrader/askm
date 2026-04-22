@@ -27,6 +27,7 @@ from .utils import (
 @app.command("list")
 @app.command("ls", hidden=True)
 def list_skills(
+    target: Optional[str] = typer.Argument(None, hidden=True),
     only_local: bool = typer.Option(
         False, "--only-local", help="Show only local skills (from local path source)"
     ),
@@ -39,13 +40,37 @@ def list_skills(
     as_json: bool = typer.Option(False, "--json", help="Output in JSON format"),
 ):
     """List installed skills as a table or JSON."""
+    if target:
+        if target != "skills":
+            if only_local or remote or scope is not None or as_json:
+                print(
+                    f"[red]Options like --json, --only-local, --remote, --scope are not supported for target '{target}'.[/red]"
+                )
+                raise typer.Exit(code=1)
+
+        if target == "skills":
+            pass
+        elif target in ("agents", "agent", "harness", "harnesses"):
+            from ..main import harness_list
+
+            harness_list()
+            return
+        elif target == "config":
+            from ..main import config_show
+
+            config_show()
+            return
+        else:
+            print(f"[red]Unknown list target: {target}[/red]")
+            raise typer.Exit(code=1)
+
     config = get_config()
 
     if scope:
         scopes_to_check = [scope]
     else:
         # Show both by default if not specified
-        scopes_to_check = [ScopeType.GLOBAL, ScopeType.LOCAL]
+        scopes_to_check = [ScopeType.USER, ScopeType.LOCAL]
 
     installed_skills_data = []
     managed_skill_names = set()
@@ -167,6 +192,8 @@ def list_skills(
                         "status": status,
                         "last_updated": source.last_updated or "-",
                         "scope": current_scope.value,
+                        "version": source.version,
+                        "source": source.source,
                     }
                 )
 
@@ -192,7 +219,10 @@ def list_skills(
             "installed": installed_skills_data,
             "unmanaged": unmanaged_skills_data,
         }
-        print(json.dumps(output, indent=2))
+        # Use standard print for JSON to avoid rich colorization
+        import sys
+
+        sys.stdout.write(json.dumps(output, indent=2) + "\n")
         return
 
     if not installed_skills_data and not unmanaged_skills_data:
@@ -202,12 +232,16 @@ def list_skills(
     # Render Table
     table = Table(title="Installed Skills")
     table.add_column("Scope", style="yellow")
-    table.add_column("Skill Name", style="magenta", no_wrap=True)
+    table.add_column("Skill Name", style="magenta")
     table.add_column("Repo/Origin", style="cyan")
     table.add_column("Other Locations", style="green")
     table.add_column("Last Updated", style="white")
 
     for skill in installed_skills_data:
+        skill_display = skill["name"]
+        if skill.get("version"):
+            skill_display += f" [dim]@{skill['version']}[/dim]"
+
         status_lines = []
         for harness_name, info in skill["status"].items():
             symbol = "🔗" if info["is_symlink"] else "📁"
@@ -234,9 +268,8 @@ def list_skills(
         )
         if skill["source_type"] == GITHUB_SOURCE_TYPE:
             repo_text = Text("🌐 ", style="white")
-            repo_text.append(
-                repo_display, style=f"cyan link https://github.com/{repo_display}"
-            )
+            url = skill.get("source") or f"https://github.com/{repo_display}"
+            repo_text.append(repo_display, style=f"cyan link {url}")
             if source_gone_symbol:
                 repo_text.append(" ⚠️", style="bold red")
             repo_display = repo_text
@@ -251,7 +284,7 @@ def list_skills(
 
         table.add_row(
             skill["scope"].capitalize(),
-            skill["name"],
+            skill_display,
             repo_display,
             status_str,
             str(last_updated),

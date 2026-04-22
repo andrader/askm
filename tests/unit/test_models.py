@@ -8,9 +8,9 @@ from jup.models import (
 )
 
 
-def test_jup_config_defaults():
+def test_jupconfig_default():
     config = JupConfig()
-    assert config.scope == ScopeType.GLOBAL
+    assert config.scope == ScopeType.USER
     assert config.harnesses == []
     assert config.sync_mode == SyncMode.LINK
 

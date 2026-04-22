@@ -17,6 +17,7 @@ from .utils import rel_home
 
 @app.command("remove")
 @app.command("rm", hidden=True)
+@app.command("uninstall", hidden=True)
 def remove_skill(
     target: str = typer.Argument(..., help="Skill name or repository (owner/repo)"),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation"),
