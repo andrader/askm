@@ -1,19 +1,8 @@
 import json
-import subprocess
 import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Optional
-
-from rich import print
-
-GH_PREFIX = "gh"  # Used to namespace GitHub sources in storage
-LOCAL_SOURCE_TYPE = "local"
-GITHUB_SOURCE_TYPE = "github"
-
-
-def rel_home(p):
-    return str(p).replace(str(Path.home()), "~")
 
 
 def fetch_remote_skill_md(
@@ -127,46 +116,6 @@ def fetch_remote_skill_md(
     return f"SKILL.md not found in {repo}.\nTried paths:\n- " + "\n- ".join(
         paths_to_try
     )
-
-
-def run_git_clone(repo_url: str, dest_dir: Path, **kwargs):
-    str_kwargs_flattened = []
-    for k, v in kwargs.items():
-        if len(k) == 1:
-            str_kwargs_flattened.append(f"-{k}")
-        elif len(k) > 1:
-            str_kwargs_flattened.append(f"--{k.replace('_', '-')}")
-        else:
-            continue
-
-        if isinstance(v, bool):
-            continue  # Flags don't have a value
-        str_kwargs_flattened.append(str(v))
-
-    try:
-        subprocess.run(
-            ["git", "clone", *str_kwargs_flattened, repo_url, str(dest_dir)],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to clone: {e.stderr.decode()}")
-        raise
-
-
-def run_git_pull(repo_dir: Path):
-    """Run git pull in the specified directory."""
-    try:
-        subprocess.run(
-            ["git", "-C", str(repo_dir), "pull"],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to pull in {rel_home(repo_dir)}: {e.stderr.decode()}")
-        raise
 
 
 def is_path_in_harness_dir(path: Path, config) -> str | None:

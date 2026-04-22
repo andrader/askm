@@ -11,18 +11,15 @@ from rich import print
 
 from ..config import (
     get_config,
-    get_skills_lock,
     get_skills_storage_dir,
-    save_skills_lock,
+    skills_lock_session,
 )
-from ..main import app, verbose_state
+from ..context import verbose_state
 from ..models import SkillSource, ScopeType
+from ..core.filesystem import rel_home, validate_path
+from ..core.constants import GH_PREFIX, LOCAL_SOURCE_TYPE, GITHUB_SOURCE_TYPE
+from ..core.git import run_git_clone
 from .utils import (
-    GH_PREFIX,
-    LOCAL_SOURCE_TYPE,
-    GITHUB_SOURCE_TYPE,
-    rel_home,
-    run_git_clone,
     is_path_in_harness_dir,
 )
 
@@ -38,35 +35,77 @@ def parse_repo_arg(repo_arg: str):
     - @version suffix on any of the above
     Returns (owner, repo, path, version, is_url) or None if local.
     """
+    if not repo_arg:
+        return None
+
+    # 1. Detect and ignore git SSH URLs (e.g. git@github.com:owner/repo.git)
+    if (
+        "@" in repo_arg
+        and ":" in repo_arg
+        and not repo_arg.startswith(("http", "ssh://"))
+    ):
+        return None
+
+    # 2. Extract version suffix (if any)
+    # We split only the LAST @ to avoid confusion with usernames in URLs
+    # and to handle cases like owner/repo@v1 correctly.
     version = None
     if "@" in repo_arg and not repo_arg.startswith("@"):
-        parts = repo_arg.rsplit("@", 1)
-        repo_arg = parts[0]
-        version = parts[1]
+        is_url = "://" in repo_arg
+        # If it's a URL, only extract if it's NOT a /tree/ URL (where branch is already present)
+        # OR if the @ is at the very end (explicit version override)
+        if not is_url or "/tree/" not in repo_arg:
+            parts = repo_arg.rsplit("@", 1)
+            # If the part after @ contains /, it's probably not a version suffix but part of a path
+            if "/" not in parts[1]:
+                repo_arg = parts[0]
+                version = parts[1]
 
-    if repo_arg.startswith("http://") or repo_arg.startswith("https://"):
+    # 3. Handle SSH and HTTP URLs
+    if repo_arg.startswith(("http://", "https://", "ssh://")):
         parsed = urllib.parse.urlparse(repo_arg)
-        if parsed.netloc == "github.com":
-            path_parts = [p for p in parsed.path.split("/") if p]
+        # Handle userinfo in netloc (e.g. git@github.com)
+        netloc = parsed.netloc
+        if "@" in netloc:
+            netloc = netloc.split("@")[-1]
+        # Handle port in netloc (e.g. github.com:443)
+        if ":" in netloc:
+            netloc = netloc.split(":")[0]
+
+        if netloc == "github.com":
+            # Normalize path: remove redundant slashes and ..
+            path_parts = [p for p in parsed.path.split("/") if p and p != ".."]
             if len(path_parts) >= 2:
                 owner = path_parts[0]
                 repo = path_parts[1]
+                if repo.endswith(".git"):
+                    repo = repo[:-4]
                 subpath = None
                 if len(path_parts) > 4 and path_parts[2] == "tree":
-                    # We ignore the branch part (path_parts[3]) for the subpath itself
-                    # but if version is not provided, we could use it. For now just extract path.
                     subpath = "/".join(path_parts[4:])
                     if not version:
                         version = path_parts[3]
                 return owner, repo, subpath, version, True
-    else:
-        # Check if it's owner/repo format
-        parts = repo_arg.split("/")
-        if len(parts) >= 2 and not Path(repo_arg).expanduser().exists():
-            owner = parts[0]
-            repo = parts[1]
-            subpath = "/".join(parts[2:]) if len(parts) > 2 else None
-            return owner, repo, subpath, version, False
+        return None  # Not a supported GitHub URL
+
+    # 4. Handle shorthand owner/repo or local paths
+    # Normalize: strip only trailing slashes and collapse multiple slashes and strip ..
+    repo_arg_norm = "/".join(p for p in repo_arg.split("/") if p and p != "..")
+    if repo_arg.startswith("/"):
+        return None  # Absolute path is always local
+
+    parts = repo_arg_norm.split("/")
+    if len(parts) >= 2:
+        # Check if it exists locally FIRST to allow local shadowing if intended
+        # but only if it's a valid local path.
+        if Path(repo_arg).expanduser().exists():
+            return None
+
+        owner = parts[0]
+        repo = parts[1]
+        subpath = "/".join(parts[2:]) if len(parts) > 2 else None
+        return owner, repo, subpath, version, False
+
     return None
 
 
@@ -94,7 +133,7 @@ def inject_metadata(skill_md_path: Path, repo_url: str, version: Optional[str]):
             new_lines.append(lines[i])
 
         new_lines.append(f"source: {repo_url}")
-        if version:
+        if version and version != "None":
             new_lines.append(f"version: {version}")
 
         final_lines = ["---"] + new_lines + ["---"] + lines[end_idx + 1 :]
@@ -114,8 +153,6 @@ def inject_metadata(skill_md_path: Path, repo_url: str, version: Optional[str]):
             skill_md_path.write_text("\n".join(frontmatter))
 
 
-@app.command("add")
-@app.command("install", hidden=True)
 def add_skill(
     repo: str = typer.Argument(
         ...,
@@ -223,7 +260,8 @@ def add_skill(
         if parsed_path and not path:
             path = parsed_path
 
-        source_key = f"{owner}/{repo_name}"
+        # Normalize case for keys to avoid duplicates
+        source_key = f"{owner.lower()}/{repo_name.lower()}"
         if path:
             source_key += f"/{path}"
         if version_resolved:
@@ -264,6 +302,9 @@ def add_skill(
             if version_resolved:
                 target_dir = target_dir.with_name(f"{repo_name}-{version_resolved}")
 
+            # CRITICAL: Validate path AFTER all modifications (including @version)
+            validate_path(target_dir, storage_base)
+
             if (skills_dir / "SKILL.md").exists():
                 all_skills = [skills_dir]
                 source_layout = "single"
@@ -302,31 +343,37 @@ def add_skill(
                 # Ensure found_skills points to the destination target_dir so lockfile stores correct name
                 found_skills = [target_dir]
 
-    lock = get_skills_lock(config)
-
-    lock.sources[source_key] = SkillSource(
-        repo=f"{owner}/{repo_name}" if source_type == GITHUB_SOURCE_TYPE else None,
-        source_type=source_type,
-        source_path=source_key if source_type == LOCAL_SOURCE_TYPE else None,
-        source_layout=source_layout,
-        category=category,
-        skills=[skill.name for skill in found_skills],
-        version=version_resolved,
-        source=repo_url if source_type == GITHUB_SOURCE_TYPE else source_key,
-        last_updated=datetime.now(timezone.utc).isoformat(timespec="seconds"),
-    )
-    save_skills_lock(config, lock)
+    with skills_lock_session(config) as lock:
+        lock.sources[source_key] = SkillSource(
+            repo=f"{owner.lower()}/{repo_name.lower()}"
+            if source_type == GITHUB_SOURCE_TYPE
+            else None,
+            source_type=source_type,
+            source_path=source_key if source_type == LOCAL_SOURCE_TYPE else None,
+            source_layout=source_layout,
+            category=category,
+            skills=[skill.name for skill in found_skills],
+            version=version_resolved,
+            source=repo_url if source_type == GITHUB_SOURCE_TYPE else source_key,
+            last_updated=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        )
 
     if source_type == LOCAL_SOURCE_TYPE:
         print(
             f"✅ Successfully added {len(found_skills)} local skills from {source_display}"
         )
     else:
+        assert target_dir is not None
         print(
             f"✅ Successfully added {len(found_skills)} skills from {owner}/{repo_name} to [green]{rel_home(target_dir)}[/green]"
         )
 
     # Trigger sync with potential custom_dir
-    from .sync import sync_logic
+    from ..core.sync import sync_logic
 
-    sync_logic(verbose=verbose_state.verbose, custom_dir=custom_dir, config=config)
+    sync_logic(
+        verbose=verbose_state.verbose,
+        custom_dir=custom_dir,
+        config=config,
+        logger=print,
+    )

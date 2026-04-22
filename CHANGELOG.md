@@ -1,6 +1,25 @@
 # CHANGELOG
 
 
+## v0.15.0-beta.3 (2026-04-22)
+
+### Bug Fixes
+
+- Address security vulnerabilities, logical flaws, and performance bottlenecks
+  ([`77aea70`](https://github.com/andrader/jup/commit/77aea70c1beab6eafe4c78f2437b791178e06bd0))
+
+- Harden path validation, implement atomic writes and improve input normalization
+  ([`0cb1ab6`](https://github.com/andrader/jup/commit/0cb1ab65201f2bf3abe9282329ff29e0eedda129))
+
+- Harden repository arg parsing and address normalization edge cases
+  ([`895e63f`](https://github.com/andrader/jup/commit/895e63f04bbaeff0a6e954b70176ecf7c64d50ae))
+
+### Features
+
+- Decouple CLI commands and extract shared state
+  ([`1b82219`](https://github.com/andrader/jup/commit/1b82219462005ff473553e4fdf577107822abb49))
+
+
 ## v0.15.0-beta.2 (2026-04-22)
 
 ### Bug Fixes

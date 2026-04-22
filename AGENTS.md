@@ -6,15 +6,15 @@
 ALWAYS use subagents for independent steps.
 ALWAYS follow the development workflow outlined below to ensure consistency, maintainability, and quality across the codebase. This workflow is designed to encourage thoughtful implementation, thorough testing, and clear documentation.
 
-## Phase 0: Project Mandates & Core Workflows
+## Mandates & Core Workflows
 To maintain high standards for the `jup` codebase and its evolution, the following mandates must be strictly followed:
 
+- **Conventional Commits**: All commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/) specification (e.g., `feat:`, `fix:`, `chore:`). Use `cz commit` when possible.
 - **Small, Clean Commits**: Each commit should address exactly one concern. Git history quality is a priority.
 - **Verification Before Action**: Run `just qa` (linting, type checking, and tests) before each commit to ensure no regressions.
-- **Confirm Before Pushing**: Always seek user confirmation before pushing any changes to remote branches.
 - **Precise Git Staging**: Never use `git add .` or `git add -A`. Manually add specific files or hunks for each commit.
+- **Confirm Before Pushing**: Always seek user confirmation before pushing any changes to remote branches.
 - **No Force Pushes**: Force pushing is prohibited unless explicitly requested by the user.
-- **Conventional Commits**: All commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/) specification (e.g., `feat:`, `fix:`, `chore:`). Use `cz commit` when possible.
 - **Patch Over Minor**: Prefer patch version updates (`0.x.y+1`) over minor version updates (`0.x+1.0`) whenever the change allows it.
 - **Adversarial Testing**: For every significant feature or fix, launch 3 parallel adversarial subagents to find edge cases, implementation flaws, and bugs.
 - **Maintain Documentation**: Keep this `AGENTS.md`, the implementation plan, and the `backlog/roadmap.md` updated throughout the development lifecycle.
@@ -35,11 +35,16 @@ To maintain high standards for the `jup` codebase and its evolution, the followi
 ## Project Overview
 
 *   **Purpose:** Centralized management of AI agent skills/tools.
-*   **Main Technologies:** Python 3.14+ (Target), `typer`, `pydantic` (v2), `rich`, and `uv`.
+*   **Main Technologies:** Python 3.12+ (Target), `typer`, `pydantic` (v2), `rich`, and `uv`.
 *   **Architecture:**
-    *   `src/jup/main.py`: Main entry point and configuration sub-commands (`jup config ...`).
-    *   `src/jup/commands/`: Package containing core CLI commands implementation (`add`, `remove`, `sync`, `list`, `show`, `find`).
-    *   `src/jup/config.py`: Handles `~/.jup` persistence, config files, and the skills lockfile.
+    *   `src/jup/main.py`: Main entry point and CLI registration.
+    *   `src/jup/context.py`: Shared CLI state (e.g., `verbose_state`).
+    *   `src/jup/core/`: Package containing core business logic:
+        *   `src/jup/core/sync.py`: Skill synchronization and filesystem orchestration.
+        *   `src/jup/core/filesystem.py`: Safe filesystem operations and path validation.
+        *   `src/jup/core/lock.py`: Atomic file locking for state management.
+    *   `src/jup/commands/`: CLI command implementation modules (decoupled from business logic).
+    *   `src/jup/config.py`: Handles `~/.jup` persistence, config files, and the skills lockfile with atomic writes.
     *   `src/jup/models.py`: Defines Pydantic models for configuration, skill sources, and the `DEFAULT_HARNESSES` registry.
     *   **Internal Storage:** Skills are cached/stored in `~/.jup/skills/` before being synced.
 
@@ -49,6 +54,7 @@ To maintain high standards for the `jup` codebase and its evolution, the followi
 
 ### Build, Test, and Tooling
 - **Environment Setup:** `uv sync` followed by `uv pip install -e .` and `uv run pre-commit install`. See [CONTRIBUTING.md](CONTRIBUTING.md) for full setup.
+- **Temporary Files:** **NEVER** create temporary directories or files (e.g., `tmp_test/`, `tmp_chaos/`) in the repository root. Always use the system's temporary directory (e.g., `tempfile.TemporaryDirectory()` in Python or `/tmp/` in shell scripts) to maintain a clean workspace and avoid git pollution.
 - **Task Runner:** We use `just`. Use `just qa` to run linting, type checking, and tests.
 - **Testing:** Run the full suite with `just test`.
 - **Formatting & Linting:** Handled by `ruff` (`just format` and `just lint`).

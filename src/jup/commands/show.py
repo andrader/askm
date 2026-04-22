@@ -9,14 +9,12 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.tree import Tree
 
-from ..main import app
+from ..core.filesystem import rel_home
 from .utils import (
     fetch_remote_skill_md,
-    rel_home,
 )
 
 
-@app.command("show")
 def show_skill(
     target: str = typer.Argument(
         ..., help="GitHub repository (owner/repo) or local skills directory."

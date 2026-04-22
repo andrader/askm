@@ -7,14 +7,13 @@ import typer
 from rich import print
 from rich.table import Table
 
-from ..main import app, verbose_state
+from ..context import verbose_state
 from .add import add_skill
 from .utils import (
     fetch_remote_skill_md,
 )
 
 
-@app.command("find")
 def find_skills(
     query: str = typer.Argument(..., help="Search query for the skills registry"),
     limit: int = typer.Option(

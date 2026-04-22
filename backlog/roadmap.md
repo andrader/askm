@@ -47,4 +47,9 @@
 - [x] **Agent Aliases**: Add global aliases (`jup ls`, `jup install`, `jup rm`) and `agent`/`agents` for `harness`.
 - [x] **Updated Agents Registry**: Add defaults for Copilot, Cursor, Codex, and Antigravity.
 - [x] **Scope Renaming**: Transition from "Global" scope terminology to "User" scope.
+- [x] **Architectural Decoupling**: Decouple CLI layer from business logic and eliminate circular dependencies via `src/jup/core/`.
+- [x] **Security Hardening**: Implement strict path validation (`Path.resolve()`) and atomic file writing (temp file rename).
+- [x] **Atomic State Management**: Add mandatory file locking for `skills.lock` to prevent race conditions.
+- [x] **Performance Optimization**: Optimize `jup list` via directory listing caching, reducing filesystem I/O.
+- [x] **Robust URL Parsing**: Normalize GitHub URLs and handle multiple slashes/SSH URLs correctly.
 - [x] **Beta/Prerelease Workflow**: Configure beta/prerelease workflows with `python-semantic-release`. (Branch configured)

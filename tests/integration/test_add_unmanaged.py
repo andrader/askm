@@ -2,7 +2,7 @@ from pathlib import Path
 from typer.testing import CliRunner
 from jup.main import app
 from jup.config import get_config, get_skills_lock
-from jup.commands.utils import LOCAL_SOURCE_TYPE
+from jup.core.constants import LOCAL_SOURCE_TYPE
 
 runner = CliRunner()
 

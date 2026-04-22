@@ -2,7 +2,7 @@ from pathlib import Path
 from jup.commands.sync import sync_logic
 from jup.config import get_config, get_skills_lock, save_skills_lock
 from jup.models import SkillSource
-from jup.commands.utils import LOCAL_SOURCE_TYPE
+from jup.core.constants import LOCAL_SOURCE_TYPE
 
 
 def test_sync_does_not_delete_source_when_in_harness_dir(isolated_env, tmp_path):

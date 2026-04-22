@@ -14,18 +14,15 @@ from ..config import (
     get_skills_lock,
     get_skills_storage_dir,
 )
-from ..main import app
 from ..models import ScopeType
-from .utils import (
+from ..core.constants import (
     GH_PREFIX,
     GITHUB_SOURCE_TYPE,
     LOCAL_SOURCE_TYPE,
-    rel_home,
 )
+from ..core.filesystem import rel_home
 
 
-@app.command("list")
-@app.command("ls", hidden=True)
 def list_skills(
     target: Optional[str] = typer.Argument(None, hidden=True),
     only_local: bool = typer.Option(
@@ -51,12 +48,12 @@ def list_skills(
         if target == "skills":
             pass
         elif target in ("agents", "agent", "harness", "harnesses"):
-            from ..main import harness_list
+            from .harness_cli import harness_list
 
             harness_list()
             return
         elif target == "config":
-            from ..main import config_show
+            from .config_cli import config_show
 
             config_show()
             return
@@ -117,6 +114,30 @@ def list_skills(
                 p = p.parent
             return rel_home(p)
 
+        # Cache harness directory contents to avoid O(N*M) exists() calls
+        harness_contents = {}
+        for h_name, h_dir in configured_harnesses:
+            if h_dir.exists():
+                try:
+                    # We store a dict of name -> (is_symlink, is_broken, exists)
+                    contents = {}
+                    for item in h_dir.iterdir():
+                        info = {
+                            "is_symlink": item.is_symlink(),
+                            "is_broken": item.is_symlink() and not item.exists(),
+                            "exists": item.exists(),
+                            "is_dir": item.is_dir(),
+                            "has_skill_md": (item / "SKILL.md").exists()
+                            if item.is_dir()
+                            else False,
+                        }
+                        contents[item.name] = info
+                    harness_contents[h_name] = contents
+                except Exception:
+                    harness_contents[h_name] = {}
+            else:
+                harness_contents[h_name] = {}
+
         for source_key, source in sources_to_show:
             source_type = source.source_type or GITHUB_SOURCE_TYPE
             repo_ref = source.repo or source_key
@@ -161,7 +182,6 @@ def list_skills(
 
                 status = {}
                 for harness_name, harness_dir in configured_harnesses:
-                    skill_path = harness_dir / skill_name
                     info = {
                         "path": format_location_path(harness_dir),
                         "exists": False,
@@ -169,14 +189,12 @@ def list_skills(
                         "is_broken": False,
                     }
 
-                    if skill_path.is_symlink():
-                        info["is_symlink"] = True
-                        if not skill_path.exists():
-                            info["is_broken"] = True
-                        else:
-                            info["exists"] = True
-                    elif skill_path.exists():
-                        info["exists"] = True
+                    h_contents = harness_contents.get(h_name, {})
+                    if skill_name in h_contents:
+                        item_info = h_contents[skill_name]
+                        info["is_symlink"] = item_info["is_symlink"]
+                        info["is_broken"] = item_info["is_broken"]
+                        info["exists"] = item_info["exists"]
 
                     status[harness_name] = info
 
@@ -199,17 +217,16 @@ def list_skills(
 
         # Scan for unmanaged skills in this scope
         for harness_name, harness_dir in configured_harnesses:
-            if not harness_dir.exists():
-                continue
-            for item in harness_dir.iterdir():
-                if item.is_dir() and item.name not in managed_skill_names:
+            h_contents = harness_contents.get(h_name, {})
+            for item_name, info in h_contents.items():
+                if info["is_dir"] and item_name not in managed_skill_names:
                     # Check if it has a SKILL.md to be considered a skill
-                    if (item / "SKILL.md").exists():
+                    if info["has_skill_md"]:
                         unmanaged_skills_data.append(
                             {
-                                "name": item.name,
+                                "name": item_name,
                                 "harness": harness_name,
-                                "path": rel_home(item),
+                                "path": rel_home(harness_dir / item_name),
                                 "scope": current_scope.value,
                             }
                         )
