@@ -1,7 +1,7 @@
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Optional
 
 import typer
 from prompt_toolkit.shortcuts import checkboxlist_dialog
@@ -38,10 +38,13 @@ def sync_skills(
         ),
     ] = False,
     verbose: bool = False,
+    custom_dir: Optional[str] = None,
 ):
     """Update all links/copies in default-lib and for other harnesses."""
     verbose_state.verbose = verbose
-    sync_logic(update=update, verbose=verbose, interactive=interactive)
+    sync_logic(
+        update=update, verbose=verbose, interactive=interactive, custom_dir=custom_dir
+    )
 
 
 @app.command("up", hidden=True)
@@ -51,7 +54,12 @@ def up_shortcut(verbose: bool = False):
     sync_logic(update=True, verbose=verbose)
 
 
-def sync_logic(update: bool = False, verbose: bool = False, interactive: bool = False):
+def sync_logic(
+    update: bool = False,
+    verbose: bool = False,
+    interactive: bool = False,
+    custom_dir: Optional[str] = None,
+):
     config = get_config()
     lock = get_skills_lock(config)
     scope_dir = get_scope_dir(config)
