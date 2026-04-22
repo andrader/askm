@@ -1,0 +1,3 @@
+GH_PREFIX = "gh"
+LOCAL_SOURCE_TYPE = "local"
+GITHUB_SOURCE_TYPE = "github"

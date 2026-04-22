@@ -9,9 +9,9 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.tree import Tree
 
+from ..core.filesystem import rel_home
 from .utils import (
     fetch_remote_skill_md,
-    rel_home,
 )
 
 

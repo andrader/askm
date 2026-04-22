@@ -16,6 +16,11 @@ def get_config() -> JupConfig:
     try:
         json_bytes = config_file.read_bytes()
         return JupConfig.model_validate_json(json_bytes)
+    except PermissionError:
+        print(
+            f"[red]Error: Permission denied when reading config from {config_file}[/red]"
+        )
+        raise
     except Exception:
         # Default config if corrupted
         return JupConfig()
@@ -86,6 +91,11 @@ def get_skills_lock(config: JupConfig) -> SkillsLock:
     try:
         json_bytes = lock_file.read_bytes()
         return SkillsLock.model_validate_json(json_bytes)
+    except PermissionError:
+        print(
+            f"[red]Error: Permission denied when reading skills lock from {lock_file}[/red]"
+        )
+        raise
     except Exception:
         return SkillsLock()
 

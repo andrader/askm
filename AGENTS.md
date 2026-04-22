@@ -54,6 +54,7 @@ To maintain high standards for the `jup` codebase and its evolution, the followi
 
 ### Build, Test, and Tooling
 - **Environment Setup:** `uv sync` followed by `uv pip install -e .` and `uv run pre-commit install`. See [CONTRIBUTING.md](CONTRIBUTING.md) for full setup.
+- **Temporary Files:** **NEVER** create temporary directories or files (e.g., `tmp_test/`, `tmp_chaos/`) in the repository root. Always use the system's temporary directory (e.g., `tempfile.TemporaryDirectory()` in Python or `/tmp/` in shell scripts) to maintain a clean workspace and avoid git pollution.
 - **Task Runner:** We use `just`. Use `just qa` to run linting, type checking, and tests.
 - **Testing:** Run the full suite with `just test`.
 - **Formatting & Linting:** Handled by `ruff` (`just format` and `just lint`).

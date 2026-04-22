@@ -15,12 +15,12 @@ from ..config import (
     get_skills_storage_dir,
 )
 from ..models import ScopeType
-from .utils import (
+from ..core.constants import (
     GH_PREFIX,
     GITHUB_SOURCE_TYPE,
     LOCAL_SOURCE_TYPE,
-    rel_home,
 )
+from ..core.filesystem import rel_home
 
 
 def list_skills(

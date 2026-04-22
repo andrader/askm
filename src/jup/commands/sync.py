@@ -1,6 +1,7 @@
-from typing import Annotated, Optional
-
 import typer
+from rich import print
+from prompt_toolkit.shortcuts import checkboxlist_dialog
+from typing import Annotated, Optional, List
 
 from ..context import verbose_state
 from ..core.sync import sync_logic
@@ -22,9 +23,22 @@ def sync_skills(
 ):
     """Update all links/copies in default-lib and for other harnesses."""
     verbose_state.verbose = verbose
-    # We cannot pass config here directly from CLI, it is meant for internal calls via sync_logic
+
+    def interactive_callback(all_skills: List[str]) -> Optional[List[str]]:
+        values = [(s, s) for s in all_skills]
+        return checkboxlist_dialog(
+            title="Interactive Sync",
+            text="Select skills to sync (Space to toggle, Enter to confirm):",
+            values=values,
+            default_values=all_skills,
+        ).run()
+
     sync_logic(
-        update=update, verbose=verbose, interactive=interactive, custom_dir=custom_dir
+        update=update,
+        verbose=verbose,
+        interactive_callback=interactive_callback if interactive else None,
+        custom_dir=custom_dir,
+        logger=print,
     )
 
 

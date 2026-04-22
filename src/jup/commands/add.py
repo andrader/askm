@@ -17,11 +17,9 @@ from ..config import (
 from ..context import verbose_state
 from ..models import SkillSource, ScopeType
 from ..core.filesystem import rel_home, validate_path
+from ..core.constants import GH_PREFIX, LOCAL_SOURCE_TYPE, GITHUB_SOURCE_TYPE
+from ..core.git import run_git_clone
 from .utils import (
-    GH_PREFIX,
-    LOCAL_SOURCE_TYPE,
-    GITHUB_SOURCE_TYPE,
-    run_git_clone,
     is_path_in_harness_dir,
 )
 
@@ -41,26 +39,42 @@ def parse_repo_arg(repo_arg: str):
         return None
 
     # 1. Detect and ignore git SSH URLs (e.g. git@github.com:owner/repo.git)
-    if "@" in repo_arg and ":" in repo_arg and not repo_arg.startswith("http"):
+    if (
+        "@" in repo_arg
+        and ":" in repo_arg
+        and not repo_arg.startswith(("http", "ssh://"))
+    ):
         return None
 
     # 2. Extract version suffix (if any)
-    # We split only the LAST @ to avoid confusion with usernames in URLs (rare but possible)
+    # We split only the LAST @ to avoid confusion with usernames in URLs
     # and to handle cases like owner/repo@v1 correctly.
     version = None
     if "@" in repo_arg and not repo_arg.startswith("@"):
-        # Ensure we don't pick up @ in the middle of a URL (e.g. auth)
-        if "://" not in repo_arg or repo_arg.find("@") > repo_arg.find("://") + 3:
+        is_url = "://" in repo_arg
+        # If it's a URL, only extract if it's NOT a /tree/ URL (where branch is already present)
+        # OR if the @ is at the very end (explicit version override)
+        if not is_url or "/tree/" not in repo_arg:
             parts = repo_arg.rsplit("@", 1)
-            repo_arg = parts[0]
-            version = parts[1]
+            # If the part after @ contains /, it's probably not a version suffix but part of a path
+            if "/" not in parts[1]:
+                repo_arg = parts[0]
+                version = parts[1]
 
     # 3. Handle SSH and HTTP URLs
     if repo_arg.startswith(("http://", "https://", "ssh://")):
         parsed = urllib.parse.urlparse(repo_arg)
-        if parsed.netloc == "github.com":
-            # Normalize path: remove redundant slashes
-            path_parts = [p for p in parsed.path.split("/") if p]
+        # Handle userinfo in netloc (e.g. git@github.com)
+        netloc = parsed.netloc
+        if "@" in netloc:
+            netloc = netloc.split("@")[-1]
+        # Handle port in netloc (e.g. github.com:443)
+        if ":" in netloc:
+            netloc = netloc.split(":")[0]
+
+        if netloc == "github.com":
+            # Normalize path: remove redundant slashes and ..
+            path_parts = [p for p in parsed.path.split("/") if p and p != ".."]
             if len(path_parts) >= 2:
                 owner = path_parts[0]
                 repo = path_parts[1]
@@ -75,8 +89,8 @@ def parse_repo_arg(repo_arg: str):
         return None  # Not a supported GitHub URL
 
     # 4. Handle shorthand owner/repo or local paths
-    # Normalize: strip only trailing slashes and collapse multiple slashes
-    repo_arg_norm = "/".join(p for p in repo_arg.split("/") if p)
+    # Normalize: strip only trailing slashes and collapse multiple slashes and strip ..
+    repo_arg_norm = "/".join(p for p in repo_arg.split("/") if p and p != "..")
     if repo_arg.startswith("/"):
         return None  # Absolute path is always local
 
@@ -119,7 +133,7 @@ def inject_metadata(skill_md_path: Path, repo_url: str, version: Optional[str]):
             new_lines.append(lines[i])
 
         new_lines.append(f"source: {repo_url}")
-        if version:
+        if version and version != "None":
             new_lines.append(f"version: {version}")
 
         final_lines = ["---"] + new_lines + ["---"] + lines[end_idx + 1 :]
@@ -246,7 +260,8 @@ def add_skill(
         if parsed_path and not path:
             path = parsed_path
 
-        source_key = f"{owner}/{repo_name}"
+        # Normalize case for keys to avoid duplicates
+        source_key = f"{owner.lower()}/{repo_name.lower()}"
         if path:
             source_key += f"/{path}"
         if version_resolved:
@@ -330,7 +345,9 @@ def add_skill(
 
     with skills_lock_session(config) as lock:
         lock.sources[source_key] = SkillSource(
-            repo=f"{owner}/{repo_name}" if source_type == GITHUB_SOURCE_TYPE else None,
+            repo=f"{owner.lower()}/{repo_name.lower()}"
+            if source_type == GITHUB_SOURCE_TYPE
+            else None,
             source_type=source_type,
             source_path=source_key if source_type == LOCAL_SOURCE_TYPE else None,
             source_layout=source_layout,
@@ -354,4 +371,9 @@ def add_skill(
     # Trigger sync with potential custom_dir
     from ..core.sync import sync_logic
 
-    sync_logic(verbose=verbose_state.verbose, custom_dir=custom_dir, config=config)
+    sync_logic(
+        verbose=verbose_state.verbose,
+        custom_dir=custom_dir,
+        config=config,
+        logger=print,
+    )

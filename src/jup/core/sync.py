@@ -1,10 +1,7 @@
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, List
-
-from rich import print
-from prompt_toolkit.shortcuts import checkboxlist_dialog
+from typing import Optional, List, Callable
 
 from ..config import (
     get_all_harnesses,
@@ -15,30 +12,35 @@ from ..config import (
 )
 from ..models import SyncMode, JupConfig, SkillsLock
 from .filesystem import rel_home, validate_path
-from ..commands.utils import (
-    GH_PREFIX,
-    GITHUB_SOURCE_TYPE,
-    LOCAL_SOURCE_TYPE,
-    run_git_pull,
-)
+from .constants import GH_PREFIX, GITHUB_SOURCE_TYPE, LOCAL_SOURCE_TYPE
+from .git import run_git_pull
 
 
 def sync_logic(
     update: bool = False,
     verbose: bool = False,
-    interactive: bool = False,
+    interactive_callback: Optional[Callable[[List[str]], Optional[List[str]]]] = None,
     custom_dir: Optional[str] = None,
     config: Optional[JupConfig] = None,
+    logger: Optional[Callable[[str], None]] = None,
 ):
     if config is None:
         config = get_config()
 
-    # We use skills_lock_session ONLY if we are going to update (write)
-    # Otherwise, we just read. But to be safe against concurrent writes while we read,
-    # we should probably lock during the whole sync.
+    def log(msg: str):
+        if logger:
+            logger(msg)
 
     with skills_lock_session(config) as lock:
-        _sync_with_lock(lock, config, update, verbose, interactive, custom_dir)
+        return _sync_with_lock(
+            lock,
+            config,
+            update,
+            verbose,
+            interactive_callback,
+            custom_dir,
+            log,
+        )
 
 
 def _sync_with_lock(
@@ -46,43 +48,41 @@ def _sync_with_lock(
     config: JupConfig,
     update: bool = False,
     verbose: bool = False,
-    interactive: bool = False,
+    interactive_callback: Optional[Callable[[List[str]], Optional[List[str]]]] = None,
     custom_dir: Optional[str] = None,
+    log: Optional[Callable[[str], None]] = None,
 ):
+    def _log(msg: str):
+        if log:
+            log(msg)
+
     scope_dir = get_scope_dir(config)
 
     selected_skills = None
-    if interactive:
-        all_skills = []
+    if interactive_callback:
+        all_skill_names = []
         for source_key, source in lock.sources.items():
             for skill in source.skills:
-                all_skills.append((skill, skill))
+                all_skill_names.append(skill)
 
-        if not all_skills:
-            print("[yellow]No skills found in lockfile to sync.[/yellow]")
+        if not all_skill_names:
+            _log("[yellow]No skills found in lockfile to sync.[/yellow]")
             return
 
-        # Sort for better UI
-        all_skills.sort()
-
-        selected_skills = checkboxlist_dialog(
-            title="Interactive Sync",
-            text="Select skills to sync (Space to toggle, Enter to confirm):",
-            values=all_skills,
-            default_values=[s[0] for s in all_skills],
-        ).run()
+        all_skill_names.sort()
+        selected_skills = interactive_callback(all_skill_names)
 
         if selected_skills is None:
             # User cancelled
             return
 
         if not selected_skills:
-            print("[yellow]No skills selected. Nothing to sync.[/yellow]")
+            _log("[yellow]No skills selected. Nothing to sync.[/yellow]")
             return
 
     # 1. Update GitHub sources if requested
     if update:
-        print("Checking for updates...")
+        _log("Checking for updates...")
         updated_count = 0
         for source_key, source in lock.sources.items():
             # If interactive, only update sources that have selected skills
@@ -109,7 +109,7 @@ def _sync_with_lock(
 
                 if storage_dir.exists() and (storage_dir / ".git").exists():
                     if verbose:
-                        print(f"Updating [cyan]{rel_home(storage_dir)}[/cyan]...")
+                        _log(f"Updating [cyan]{rel_home(storage_dir)}[/cyan]...")
                     try:
                         run_git_pull(storage_dir)
                         updated_count += 1
@@ -118,13 +118,14 @@ def _sync_with_lock(
                             timespec="seconds"
                         )
                     except Exception:
-                        print(f"[red]Failed to update {rel_home(storage_dir)}[/red]")
+                        _log(f"[red]Failed to update {rel_home(storage_dir)}[/red]")
 
         if updated_count > 0:
-            print(f"Updated {updated_count} GitHub sources.")
+            _log(f"Updated {updated_count} GitHub sources.")
 
     # Target directories
     targets = []
+    all_harnesses = get_all_harnesses(config)
 
     if custom_dir:
         targets.append(Path(custom_dir).expanduser().resolve())
@@ -134,7 +135,6 @@ def _sync_with_lock(
         targets.append(default_skills_dir)
 
         # Harness directories
-        all_harnesses = get_all_harnesses(config)
         for harness_name in config.harnesses:
             if harness_name in all_harnesses:
                 harness = all_harnesses[harness_name]
@@ -146,7 +146,7 @@ def _sync_with_lock(
                 )
                 targets.append(Path(loc).expanduser().resolve())
             else:
-                print(
+                _log(
                     f"[yellow]Warning: Unknown harness '{harness_name}'. Skipping.[/yellow]"
                 )
 
@@ -168,13 +168,10 @@ def _sync_with_lock(
         try:
             t.mkdir(parents=True, exist_ok=True)
         except Exception as e:
-            print(
+            _log(
                 f"[red]Error: Could not create target directory {rel_home(t)}: {e}[/red]"
             )
             continue
-
-    # We only overwrite skills managed by our lockfile
-    # to avoid blowing away user's manual skills.
 
     # 1. Clean up managed skills from inactive harnesses and removed skills
     all_managed_skills = set()
@@ -197,13 +194,13 @@ def _sync_with_lock(
                     removed_from_inactive += 1
                 except ValueError:
                     if verbose:
-                        print(
+                        _log(
                             f"⚠️  Skipping potentially unsafe path: [red]{skill_path}[/red]"
                         )
                     continue
 
     if removed_from_inactive > 0 and verbose:
-        print(
+        _log(
             f"🧹 Cleaned {removed_from_inactive} skills from {len(inactive_targets)} inactive harness directories."
         )
 
@@ -229,7 +226,7 @@ def _sync_with_lock(
             else:
                 repo_ref = source.repo or source_key
                 if "/" not in repo_ref:
-                    print(f"⚠️  Invalid repository reference: [red]{repo_ref}[/red]")
+                    _log(f"⚠️  Invalid repository reference: [red]{repo_ref}[/red]")
                     continue
                 owner, repo_name = repo_ref.split("/", 1)
                 storage_dir = (
@@ -259,7 +256,7 @@ def _sync_with_lock(
             if not skill_src_dir.exists():
                 missing_skills.append((skill, skill_src_dir))
                 if verbose:
-                    print(
+                    _log(
                         f"⚠️  Source dir for '[red]{skill}[/red]' missing: [red]{rel_home(skill_src_dir)}[/red]"
                     )
                 continue
@@ -272,7 +269,7 @@ def _sync_with_lock(
                     validate_path(target_skill_dir, target_base)
                 except ValueError:
                     if verbose:
-                        print(
+                        _log(
                             f"⚠️  Skipping potentially unsafe path: [red]{target_skill_dir}[/red]"
                         )
                     continue
@@ -283,7 +280,7 @@ def _sync_with_lock(
                     and target_skill_dir.resolve() == skill_src_dir.resolve()
                 ):
                     if verbose:
-                        print(
+                        _log(
                             f"✅ [green]{skill}[/green] is already at source location [cyan]{rel_home(target_skill_dir)}[/cyan], skipping."
                         )
                     continue
@@ -299,7 +296,7 @@ def _sync_with_lock(
                             target_skill_dir.unlink()
                     except Exception as e:
                         if verbose:
-                            print(
+                            _log(
                                 f"[red]Failed to remove {rel_home(target_skill_dir)}: {e}[/red]"
                             )
                         continue
@@ -313,15 +310,16 @@ def _sync_with_lock(
                     else:
                         shutil.copytree(skill_src_dir, target_skill_dir)
                 except Exception as e:
-                    print(
+                    _log(
                         f"[red]Error: Could not sync {skill} to {rel_home(target_skill_dir)}: {e}[/red]"
                     )
 
     if missing_skills and not verbose:
-        print(f"⚠️  Skipped {len(missing_skills)} missing skills from the lockfile.")
+        _log(f"⚠️  Skipped {len(missing_skills)} missing skills from the lockfile.")
 
-    print(f"🔄 Synced {synced_skills} skills across {len(targets)} locations.")
+    _log(f"🔄 Synced {synced_skills} skills across {len(targets)} locations.")
     if verbose:
-        print(
+        _log(
             f"Added {total_links} symlinks (sync_mode=[cyan]{str(config.sync_mode)}[/cyan])"
         )
+    return synced_skills, len(targets), total_links

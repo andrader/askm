@@ -11,7 +11,7 @@ from ..config import (
     skills_lock_session,
 )
 from ..context import verbose_state
-from .utils import rel_home
+from ..core.filesystem import rel_home
 
 
 def remove_skill(
@@ -114,4 +114,4 @@ def remove_skill(
     # Trigger sync
     from .sync import sync_logic
 
-    sync_logic(verbose=verbose_state.verbose)
+    sync_logic(verbose=verbose_state.verbose, logger=print)

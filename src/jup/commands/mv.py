@@ -11,7 +11,8 @@ from ..config import (
     skills_lock_session,
 )
 from ..context import verbose_state
-from .utils import GH_PREFIX, GITHUB_SOURCE_TYPE, LOCAL_SOURCE_TYPE, rel_home
+from ..core.constants import GH_PREFIX, GITHUB_SOURCE_TYPE, LOCAL_SOURCE_TYPE
+from ..core.filesystem import rel_home
 
 
 def move_skill(
@@ -254,4 +255,4 @@ def move_skill(
     # Trigger sync to update symlinks
     from .sync import sync_logic
 
-    sync_logic(verbose=verbose_state.verbose)
+    sync_logic(verbose=verbose_state.verbose, logger=print)
