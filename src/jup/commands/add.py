@@ -26,6 +26,7 @@ from .utils import (
 
 
 @app.command("add")
+@app.command("install", hidden=True)
 def add_skill(
     repo: str = typer.Argument(
         ...,

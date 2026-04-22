@@ -81,6 +81,8 @@ def config_show():
     table.add_column("Key", style="cyan", no_wrap=True)
     table.add_column("Value", style="magenta")
     for key in JupConfig.model_fields:
+        if key == "custom_harnesses":
+            continue
         value = getattr(config, key)
         if isinstance(value, list):
             value_str = ", ".join(value) if value else "none"
@@ -176,6 +178,8 @@ def config_unset(key: str = typer.Argument(..., help="Config key to unset")):
 
 harness_app = typer.Typer(help="Manage harness providers", no_args_is_help=True)
 app.add_typer(harness_app, name="harness")
+app.add_typer(harness_app, name="agent", hidden=True)
+app.add_typer(harness_app, name="agents", hidden=True)
 
 
 @harness_app.command("list")

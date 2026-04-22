@@ -27,6 +27,7 @@ from .utils import (
 @app.command("list")
 @app.command("ls", hidden=True)
 def list_skills(
+    target: Optional[str] = typer.Argument(None, hidden=True),
     only_local: bool = typer.Option(
         False, "--only-local", help="Show only local skills (from local path source)"
     ),
@@ -39,6 +40,23 @@ def list_skills(
     as_json: bool = typer.Option(False, "--json", help="Output in JSON format"),
 ):
     """List installed skills as a table or JSON."""
+    if target:
+        if target == "skills":
+            pass
+        elif target in ("agents", "agent", "harness", "harnesses"):
+            from ..main import harness_list
+
+            harness_list()
+            return
+        elif target == "config":
+            from ..main import config_show
+
+            config_show()
+            return
+        else:
+            print(f"[red]Unknown list target: {target}[/red]")
+            raise typer.Exit(code=1)
+
     config = get_config()
 
     if scope:
