@@ -57,17 +57,21 @@ upload_to_release = true
 
 [tool.semantic_release.branches.main]
 match = "main"
-prerelease = true
-prerelease_token = "beta"
-tag = true
-
-[tool.semantic_release.branches.release]
-match = "release"
 prerelease = false
 tag = true
 
+[tool.semantic_release.branches.dev]
+match = "dev"
+prerelease = true
+prerelease_token = "beta"
+tag = true
+# Ensure we don't commit back to dev, only main
+commit = false
+
 [tool.semantic_release.changelog]
 default_templates.changelog_file = "CHANGELOG.md"
+# Skip beta tags in the stable changelog
+ignore_token = "beta"
 # Recommended patterns for conventional commits parser that is scope aware
 exclude_commit_patterns = [
     '''chore(?:\([^)]*?\))?: .+''',

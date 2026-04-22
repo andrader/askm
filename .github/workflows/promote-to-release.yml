@@ -1,4 +1,4 @@
-name: Promote to Release
+name: Promote to Main (Stable)
 
 on:
   schedule:
@@ -13,22 +13,22 @@ jobs:
       contents: write
       actions: write
     steps:
-      - name: Checkout release branch
+      - name: Checkout main branch
         uses: actions/checkout@v6
         with:
-          ref: release
+          ref: main
           fetch-depth: 0
 
-      - name: Merge main into release
+      - name: Merge dev into main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          # Use -X theirs to favor changes from main in case of conflicts (like CHANGELOG or version)
-          git merge origin/main -X theirs --no-edit
-          git push origin release
+          git fetch origin dev
+          # Favor dev changes to ensure latest staging features are promoted
+          git merge origin/dev -X theirs --no-edit
+          git push origin main
           
-          # Explicitly trigger the release workflow since pushes from GITHUB_TOKEN don't trigger other workflows
-          gh workflow run release.yml --ref release
+          # Explicitly trigger the release workflow on main
+          gh workflow run release.yml --ref main

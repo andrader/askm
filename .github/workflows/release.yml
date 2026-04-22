@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - release
+      - dev
   workflow_dispatch:
 
 jobs:
@@ -13,8 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: release
     permissions:
-      id-token: write  # Mandatory for trusted publishing
-      contents: write  # Mandatory for semantic-release to create tags/releases
+      id-token: write
+      contents: write
 
     steps:
       - uses: actions/checkout@v6
@@ -62,29 +62,19 @@ jobs:
           git tag -f latest "$VERSION"
           git push -f origin latest
 
-          # Only update stable if on the release branch (stable version)
-          if [ "${{ github.ref_name }}" == "release" ]; then
+          # Only update stable if on the main branch (stable version)
+          if [ "${{ github.ref_name }}" == "main" ]; then
             git tag -f stable "$VERSION"
             git push -f origin stable
           fi
 
-      - name: Back-sync release to main
-        if: github.ref_name == 'release'
+      - name: Sync main back to dev
+        if: github.ref_name == 'main' && steps.release.outputs.released == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          # We need to save the current (updated) state of pyproject.toml and CHANGELOG
-          cp pyproject.toml /tmp/pyproject.toml
-          cp CHANGELOG.md /tmp/CHANGELOG.md
-          
-          git checkout main
-          git merge origin/release -X ours --no-edit
-          
-          # Explicitly restore the updated files
-          cp /tmp/pyproject.toml pyproject.toml
-          cp /tmp/CHANGELOG.md CHANGELOG.md
-          
-          git add CHANGELOG.md pyproject.toml
-          git diff --cached --quiet || git commit -m "chore: sync release state to main"
-          git push origin main
+          git fetch origin dev
+          git checkout dev
+          # Merge main into dev to keep versioning and changelog in sync
+          git merge origin/main --no-edit
+          git push origin dev
