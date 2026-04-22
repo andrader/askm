@@ -18,33 +18,24 @@ To maintain high standards for the `jup` codebase and its evolution, the followi
 - **Patch Over Minor**: Prefer patch version updates (`0.x.y+1`) over minor version updates (`0.x+1.0`) whenever the change allows it.
 - **Adversarial Testing**: For every significant feature or fix, launch 3 parallel adversarial subagents to find edge cases, implementation flaws, and bugs.
 - **Maintain Documentation**: Keep this `AGENTS.md`, the implementation plan, and the `backlog/roadmap.md` updated throughout the development lifecycle.
+- **Update Documentation on Every Change**: Always update the following if needed when making a change: `AGENTS.md`, `docs/`, and `skills/`.
 
-## dev workflow (better rewrite this)
-- ask clarifying questions
-- propose 3 approaches with pros and cons
-- ask the user choice
-- create implementation plan
-- break plan in small steps
-- new branch, commit often with clear messages
-- implement changes. use subagents whenever possible.
-- adversarial testing: launch 3 parallel adversarial subagents to find implementation problems
-- reflect: are there any edge cases?
-- does it require new tests? add them, run them
-- does it require docs updates? update docs: all jup readme+ screenshots
-- update backlog/
-- commit in new branch, push, make pr
-
-jup backlog
-- chores:
-	- add mkdocs docs + auto doc pkg reference
-	- extract a python pkg template from jup repo, cookiecutter/copier...? (maybe copier is better)
-    - configure beta or prerealease workflow with python-semantic-release
-
+## Dev Workflow
+1.  **Clarify**: Ask clarifying questions to ensure full understanding.
+2.  **Propose**: Propose up to 3 approaches with pros and cons.
+3.  **Plan**: Create a detailed implementation plan and break it into small, logical steps.
+4.  **Implement**: Use subagents for independent steps. Commit often with clean, conventional messages.
+5.  **Test**: Add new tests and run the full suite (`just qa`).
+6.  **Adversarial Phase**: Launch 3 parallel adversarial subagents to try and break the implementation.
+7.  **Reflect**: Analyze edge cases and findings from subagents.
+8.  **Document**: Update `AGENTS.md`, `docs/`, and the `jup` skill (`skills/jup/SKILL.md`).
+9.  **Backlog**: Keep `backlog/roadmap.md` updated.
+10. **Finalize**: Confirm with the user before pushing.
 
 ## Project Overview
 
 *   **Purpose:** Centralized management of AI agent skills/tools.
-*   **Main Technologies:** Python 3.12+, `typer`, `pydantic` (v2), `rich`, and `uv`.
+*   **Main Technologies:** Python 3.14+ (Target), `typer`, `pydantic` (v2), `rich`, and `uv`.
 *   **Architecture:**
     *   `src/jup/main.py`: Main entry point and configuration sub-commands (`jup config ...`).
     *   `src/jup/commands/`: Package containing core CLI commands implementation (`add`, `remove`, `sync`, `list`, `show`, `find`).
@@ -73,12 +64,14 @@ jup backlog
 - Keep imports and formatting consistent; `ruff` is the primary tool for enforcement.
 
 ### Skill & Sync Logic
-- **Skill Structure:** `jup` expects a directory containing a `SKILL.md` file. It supports single-skill directories or collections.
+- **Skill Structure:** `jup` expects a directory containing a `SKILL.md` file. It supports `skills/*/SKILL.md` discovery.
 - **Sync Behavior:** `sync` only manages entries in the lockfile. It does not preserve arbitrary manual edits inside managed target directories.
 - **Sync Mode:** The `sync-mode` alias in the CLI maps to `sync_mode` in the config model.
-- **Harness Registry:** Supported harnesses and their default paths are defined in `src/jup/models.py`. The `get_scope_dir` function returns the exact path to a harness's skills directory (e.g., `~/.gemini/skills`). Tests frequently patch this registry.
-- **Path Consistency:** Ensure that `list`, `sync`, and `remove` commands use `get_scope_dir` directly for the default target, avoiding redundant `/skills` nesting.
+- **Harness Registry:** Supported harnesses: Gemini, Copilot, Claude, Cursor, Codex, Antigravity. Defined in `src/jup/models.py`.
+- **Scope:** Terminology renamed from `global` to `user`. Backward compatibility is maintained via Pydantic validators.
+- **Path Consistency:** Ensure that `list`, `sync`, and `remove` commands use `get_scope_dir` directly for the default target.
 
 ### Documentation
 - Treat [README.md](README.md) and [CONTRIBUTING.md](CONTRIBUTING.md) as the primary user-facing and contributor documentation.
 - When changing CLI behavior, **must** update the relevant tests under `tests/integration` and `tests/e2e`.
+- **Surgical Updates**: Always update `AGENTS.md`, `docs/`, and `skills/` for every feature change.
