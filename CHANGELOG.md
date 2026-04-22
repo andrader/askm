@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.15.0-beta.1 (2026-04-22)
+
+### Bug Fixes
+
+- Bump main version to 0.15.0, enable beta tags, and fix back-sync logic
+  ([`15fac1b`](https://github.com/andrader/jup/commit/15fac1b51266c7ddbbb0ffee50f599f1135b8bb8))
+
+
 ## v0.14.0-beta.2 (2026-04-22)
 
 ### Bug Fixes
@@ -52,6 +60,9 @@
 
 - Isolate tests and prevent leaks to local environment
   ([`ac43c56`](https://github.com/andrader/jup/commit/ac43c5664f112a2523b768389bac6e1a0aaef3ce))
+
+
+## v0.14.0 (2026-04-21)
 
 
 ## v0.14.0-beta.1 (2026-04-21)
