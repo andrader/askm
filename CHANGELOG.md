@@ -5,14 +5,11 @@
 
 ### Features
 
+- Decouple CLI commands and extract shared state
+  ([`1b82219`](https://github.com/andrader/jup/commit/1b82219462005ff473553e4fdf577107822abb49))
+
 - Ensure minor bump to 0.16.0 for command decoupling release
   ([`61972bd`](https://github.com/andrader/jup/commit/61972bd109d20ac0963742f7331bb1b582461b28))
-
-
-## v0.15.0 (2026-04-22)
-
-
-## v0.15.0-beta.3 (2026-04-22)
 
 ### Bug Fixes
 
@@ -25,30 +22,14 @@
 - Harden repository arg parsing and address normalization edge cases
   ([`895e63f`](https://github.com/andrader/jup/commit/895e63f04bbaeff0a6e954b70176ecf7c64d50ae))
 
-### Features
-
-- Decouple CLI commands and extract shared state
-  ([`1b82219`](https://github.com/andrader/jup/commit/1b82219462005ff473553e4fdf577107822abb49))
-
-
-## v0.15.0-beta.2 (2026-04-22)
-
-### Bug Fixes
-
 - Update jup version in uv.lock
   ([`cb24268`](https://github.com/andrader/jup/commit/cb24268508f972767d2dc055bb8203b1b12c380c))
-
-
-## v0.15.0-beta.1 (2026-04-22)
-
-### Bug Fixes
 
 - Bump main version to 0.15.0, enable beta tags, and fix back-sync logic
   ([`15fac1b`](https://github.com/andrader/jup/commit/15fac1b51266c7ddbbb0ffee50f599f1135b8bb8))
 
 
 ## v0.14.0-beta.2 (2026-04-22)
-
 ### Bug Fixes
 
 - Add scope backward compatibility and improve list output robustness
