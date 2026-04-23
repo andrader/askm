@@ -1,7 +1,12 @@
 # CHANGELOG
 
 
-## v0.16.0 (2026-04-22)
+## v0.15.0 (2026-04-23)
+
+### Features
+
+- Ensure minor bump to 0.16.0 for command decoupling release
+  ([`61972bd`](https://github.com/andrader/jup/commit/61972bd109d20ac0963742f7331bb1b582461b28))
 
 
 ## v0.15.0-beta.3 (2026-04-22)
