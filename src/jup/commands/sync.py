@@ -50,7 +50,7 @@ def up_shortcut(verbose: bool = False):
     """
     Shortcut for jup sync --update
 
-    Aliases: up
+    Aliases: update, up
     """
     verbose_state.verbose = verbose
     sync_logic(update=True, verbose=verbose)

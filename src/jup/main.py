@@ -59,9 +59,13 @@ from .commands.config_cli import app as config_app  # noqa: E402
 from .commands.harness_cli import app as harness_app  # noqa: E402
 
 app.add_typer(config_app, name="config")
-app.add_typer(harness_app, name="harness")
-app.add_typer(harness_app, name="agent", hidden=True)
-app.add_typer(harness_app, name="agents", hidden=True)
+
+harness_help = harness_app.info.help or ""
+harness_aliases = ["agent", "agents"]
+harness_alias_str = f" [dim](aliases: {', '.join(harness_aliases)})[/dim]"
+app.add_typer(harness_app, name="harness", help=harness_help + harness_alias_str)
+for alias in harness_aliases:
+    app.add_typer(harness_app, name=alias, hidden=True)
 
 
 # Import command registrations after app and shared state are defined.
@@ -78,11 +82,11 @@ COMMANDS = {
     "add": (add_skill, ["install"]),
     "remove": (remove_skill, ["rm", "uninstall"]),
     "sync": (sync_skills, []),
-    "up": (up_shortcut, []),
+    "update": (up_shortcut, ["up"]),
     "list": (list_skills, ["ls"]),
     "show": (show_skill, []),
     "find": (find_skills, []),
-    "mv": (move_skill, []),
+    "move": (move_skill, ["mv"]),
 }
 
 for main_name, (func, aliases) in COMMANDS.items():

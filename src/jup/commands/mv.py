@@ -38,7 +38,11 @@ def move_skill(
     ),
     verbose: bool = False,
 ):
-    """Move a skill or repository to a new category or filesystem path."""
+    """
+    Move a skill or repository to a new category or filesystem path.
+
+    Aliases: mv
+    """
     verbose_state.verbose = verbose
     config = get_config()
     with skills_lock_session(config) as lock:
