@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.17.0-beta.1 (2026-04-24)
+
+### Features
+
+- **cli**: Show command aliases in help output
+  ([`7253a06`](https://github.com/andrader/jup/commit/7253a066ff579bca44a8bd4ea8f2418a5cea22f1))
+
+
 ## v0.16.1 (2026-04-24)
 
 
