@@ -19,7 +19,11 @@ def remove_skill(
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation"),
     verbose: bool = False,
 ):
-    """Remove a skill or all skills from a repository."""
+    """
+    Remove a skill or all skills from a repository.
+
+    Aliases: rm, uninstall
+    """
     verbose_state.verbose = verbose
     if not yes:
         typer.confirm(f"Are you sure you want to remove {target}?", abort=True)

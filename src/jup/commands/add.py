@@ -189,7 +189,11 @@ def add_skill(
     ),
     verbose: bool = False,
 ):
-    """Install skills from a GitHub repository or a local directory."""
+    """
+    Install skills from a GitHub repository or a local directory.
+
+    Aliases: install
+    """
     verbose_state.verbose = verbose
     source_type = GITHUB_SOURCE_TYPE
     source_layout = None

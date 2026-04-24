@@ -73,18 +73,31 @@ from .commands.show import show_skill  # noqa: E402
 from .commands.find import find_skills  # noqa: E402
 from .commands.mv import move_skill  # noqa: E402
 
-app.command("add")(add_skill)
-app.command("install", hidden=True)(add_skill)
-app.command("remove")(remove_skill)
-app.command("rm", hidden=True)(remove_skill)
-app.command("uninstall", hidden=True)(remove_skill)
-app.command("sync")(sync_skills)
-app.command("up", hidden=True)(up_shortcut)
-app.command("list")(list_skills)
-app.command("ls", hidden=True)(list_skills)
-app.command("show")(show_skill)
-app.command("find")(find_skills)
-app.command("mv")(move_skill)
+# Command registration with aliases
+COMMANDS = {
+    "add": (add_skill, ["install"]),
+    "remove": (remove_skill, ["rm", "uninstall"]),
+    "sync": (sync_skills, []),
+    "up": (up_shortcut, []),
+    "list": (list_skills, ["ls"]),
+    "show": (show_skill, []),
+    "find": (find_skills, []),
+    "mv": (move_skill, []),
+}
+
+for main_name, (func, aliases) in COMMANDS.items():
+    help_str = func.__doc__ or ""
+    if aliases:
+        # Get the first non-empty line of the docstring for the command help summary.
+        lines = [line.strip() for line in help_str.split("\n") if line.strip()]
+        first_line = lines[0] if lines else ""
+        alias_str = f" [dim](aliases: {', '.join(aliases)})[/dim]"
+        app.command(main_name, help=first_line + alias_str)(func)
+    else:
+        app.command(main_name)(func)
+
+    for alias in aliases:
+        app.command(alias, hidden=True)(func)
 
 
 def main():

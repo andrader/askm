@@ -36,7 +36,11 @@ def list_skills(
     ),
     as_json: bool = typer.Option(False, "--json", help="Output in JSON format"),
 ):
-    """List installed skills as a table or JSON."""
+    """
+    List installed skills as a table or JSON.
+
+    Aliases: ls
+    """
     if target:
         if target != "skills":
             if only_local or remote or scope is not None or as_json:

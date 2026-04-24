@@ -21,7 +21,11 @@ def sync_skills(
     verbose: bool = False,
     custom_dir: Optional[str] = None,
 ):
-    """Update all links/copies in default-lib and for other harnesses."""
+    """
+    Update all links/copies in default-lib and for other harnesses.
+
+    Aliases: up (sync --update)
+    """
     verbose_state.verbose = verbose
 
     def interactive_callback(all_skills: List[str]) -> Optional[List[str]]:
@@ -43,6 +47,10 @@ def sync_skills(
 
 
 def up_shortcut(verbose: bool = False):
-    """Shortcut for jup sync --update"""
+    """
+    Shortcut for jup sync --update
+
+    Aliases: up
+    """
     verbose_state.verbose = verbose
     sync_logic(update=True, verbose=verbose)
