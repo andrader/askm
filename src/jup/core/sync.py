@@ -150,8 +150,18 @@ def _sync_with_lock(
                     f"[yellow]Warning: Unknown harness '{harness_name}'. Skipping.[/yellow]"
                 )
 
+    # Deduplicate targets while preserving order (optional, but good for consistent logging)
+    seen = set()
+    deduped_targets = []
+    for t in targets:
+        resolved_t = t.resolve()
+        if resolved_t not in seen:
+            seen.add(resolved_t)
+            deduped_targets.append(t)
+    targets = deduped_targets
+
     # Identify directories of inactive harnesses to clean up
-    active_target_paths = {t.resolve() for t in targets}
+    active_target_paths = seen  # already resolved set
     inactive_targets = []
     for harness_name, harness in all_harnesses.items():
         loc = (
@@ -185,8 +195,12 @@ def _sync_with_lock(
             skill_path = it / skill
             if skill_path.exists() or skill_path.is_symlink():
                 try:
-                    validate_path(skill_path, it)
+                    validate_path(skill_path, it, follow_symlinks=False)
                     # For safety, only remove if matched a managed skill
+                    if verbose:
+                        _log(
+                            f"🧹 Removing [cyan]{skill}[/cyan] from inactive harness [yellow]{rel_home(it)}[/yellow]"
+                        )
                     if skill_path.is_symlink() or skill_path.is_file():
                         skill_path.unlink()
                     elif skill_path.is_dir():
@@ -266,7 +280,7 @@ def _sync_with_lock(
             for target_base in targets:
                 target_skill_dir = target_base / skill
                 try:
-                    validate_path(target_skill_dir, target_base)
+                    validate_path(target_skill_dir, target_base, follow_symlinks=False)
                 except ValueError:
                     if verbose:
                         _log(
@@ -274,20 +288,29 @@ def _sync_with_lock(
                         )
                     continue
 
-                # SAFETY CHECK: Don't touch if target is the same as source
+                # SAFETY CHECK: Don't touch if target is the same as source AND sync mode matches
                 if (
                     target_skill_dir.exists()
                     and target_skill_dir.resolve() == skill_src_dir.resolve()
                 ):
-                    if verbose:
-                        _log(
-                            f"✅ [green]{skill}[/green] is already at source location [cyan]{rel_home(target_skill_dir)}[/cyan], skipping."
-                        )
-                    continue
+                    # Only skip if the actual mode matches (is_symlink vs is_dir)
+                    current_is_link = target_skill_dir.is_symlink()
+                    desired_is_link = config.sync_mode == SyncMode.LINK
+
+                    if current_is_link == desired_is_link:
+                        if verbose:
+                            _log(
+                                f"✅ [green]{skill}[/green] is already at source location [cyan]{rel_home(target_skill_dir)}[/cyan] (mode=[cyan]{config.sync_mode}[/cyan]), skipping."
+                            )
+                        continue
 
                 # Clean up existing managed target
                 if target_skill_dir.exists() or target_skill_dir.is_symlink():
                     try:
+                        if verbose:
+                            _log(
+                                f"🔗 Unlinking [yellow]{rel_home(target_skill_dir)}[/yellow]"
+                            )
                         if target_skill_dir.is_symlink():
                             target_skill_dir.unlink()
                         elif target_skill_dir.is_dir():
@@ -303,11 +326,19 @@ def _sync_with_lock(
 
                 try:
                     if config.sync_mode == SyncMode.LINK:
+                        if verbose:
+                            _log(
+                                f"🔗 Linking [cyan]{skill}[/cyan] -> [yellow]{rel_home(target_skill_dir)}[/yellow]"
+                            )
                         target_skill_dir.symlink_to(
                             skill_src_dir, target_is_directory=True
                         )
                         total_links += 1
                     else:
+                        if verbose:
+                            _log(
+                                f"📂 Copying [cyan]{skill}[/cyan] -> [yellow]{rel_home(target_skill_dir)}[/yellow]"
+                            )
                         shutil.copytree(skill_src_dir, target_skill_dir)
                 except Exception as e:
                     _log(
