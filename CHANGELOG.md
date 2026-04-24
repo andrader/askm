@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.18.0-beta.1 (2026-04-24)
+
+### Features
+
+- **cli**: Add move, update and harness aliases to help output
+  ([`c1d3298`](https://github.com/andrader/jup/commit/c1d32988757b588aaa0778618bec442aa64e2b76))
+
+
 ## v0.17.0 (2026-04-24)
 
 
