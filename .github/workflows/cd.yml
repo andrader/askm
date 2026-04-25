@@ -1,17 +1,20 @@
-name: CD # Triggering run to verify environment approval gate
+name: CD
 
 on:
   push:
     branches:
       - dev
+      - main
 
 concurrency:
   group: cd-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
+  # 1. Publish Beta (Only on dev, and only if [skip beta] is NOT in the commit message)
   publish-beta:
     name: Publish Beta
+    if: github.ref_name == 'dev' && !contains(github.event.head_commit.message, '[skip beta]')
     permissions:
       id-token: write
       contents: write
@@ -19,19 +22,27 @@ jobs:
     with:
       branch: dev
 
+  # 2. Human Gate (Only on dev. If beta was skipped, it skips this gate by default unless we adjust)
+  # We'll make it proceed if beta was successful OR if beta was explicitly skipped.
   approval:
     name: Human Gate
     needs: publish-beta
-    if: ${{ needs.publish-beta.outputs.released == 'true' }}
+    if: |
+      always() && 
+      github.ref_name == 'dev' && 
+      (needs.publish-beta.result == 'success' || contains(github.event.head_commit.message, '[skip beta]')) &&
+      (needs.publish-beta.outputs.released == 'true' || contains(github.event.head_commit.message, '[skip beta]'))
     runs-on: ubuntu-latest
     environment: production
     steps:
       - name: Await Approval
         run: echo "Approved for production release"
 
+  # 3. Promote to Main (Only on dev, after approval)
   promote-to-main:
     name: Promote to Main
     needs: approval
+    if: github.ref_name == 'dev' && needs.approval.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -49,9 +60,13 @@ jobs:
           git merge origin/dev -X theirs --no-edit
           git push origin main
 
+  # 4. Publish Stable (Runs after promotion OR on direct push to main)
   publish-stable:
     name: Publish Stable
-    needs: promote-to-main
+    needs: [promote-to-main, publish-beta]
+    if: |
+      always() &&
+      (github.ref_name == 'main' || (github.ref_name == 'dev' && needs.promote-to-main.result == 'success'))
     permissions:
       id-token: write
       contents: write
