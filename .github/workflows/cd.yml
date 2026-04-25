@@ -22,6 +22,7 @@ jobs:
   approval:
     name: Human Gate
     needs: publish-beta
+    if: ${{ needs.publish-beta.outputs.released == 'true' }}
     runs-on: ubuntu-latest
     environment: production
     steps:

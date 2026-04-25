@@ -6,11 +6,17 @@ on:
       branch:
         required: true
         type: string
+    outputs:
+      released:
+        description: "Whether a new version was released"
+        value: ${{ jobs.publish.outputs.released }}
 
 jobs:
   publish:
     name: Publish
     runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.release.outputs.released }}
     permissions:
       id-token: write
       contents: write
