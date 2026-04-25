@@ -8,12 +8,17 @@ on:
         required: true
         type: string
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to release from'
+        required: true
+        default: 'dev'
+        type: string
 
 jobs:
   publish:
     name: Publish
     runs-on: ubuntu-latest
-    concurrency: publish-${{ inputs.branch || github.ref_name }}
     permissions:
       id-token: write
       contents: write
@@ -22,7 +27,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: ${{ inputs.branch || github.ref_name }}
+          ref: ${{ inputs.branch }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -66,13 +71,13 @@ jobs:
           git push -f origin latest
 
           # Only update stable if on the main branch (stable version)
-          if [ "${{ inputs.branch || github.ref_name }}" == "main" ]; then
+          if [ "${{ inputs.branch }}" == "main" ]; then
             git tag -f stable "$VERSION"
             git push -f origin stable
           fi
 
       - name: Sync main back to dev
-        if: (inputs.branch == 'main' || github.ref_name == 'main') && steps.release.outputs.released == 'true'
+        if: inputs.branch == 'main' && steps.release.outputs.released == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
