@@ -279,7 +279,9 @@ def add_skill(
                     run_git_clone(repo_url, temp_path, branch=version_resolved, depth=1)
                 else:
                     run_git_clone(repo_url, temp_path, depth=1)
-            except subprocess.CalledProcessError:
+            except subprocess.CalledProcessError as e:
+                err_msg = e.stderr.decode() if e.stderr else str(e)
+                print(f"[red]Failed to clone repository: {err_msg}[/red]")
                 raise typer.Exit(code=1)
 
             skills_dir = temp_path / path if path else temp_path / "skills"

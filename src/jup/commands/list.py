@@ -19,6 +19,7 @@ from ..core.constants import (
     GH_PREFIX,
     GITHUB_SOURCE_TYPE,
     LOCAL_SOURCE_TYPE,
+    BANNER,
 )
 from ..core.filesystem import rel_home
 
@@ -41,6 +42,9 @@ def list_skills(
 
     Aliases: ls
     """
+    if not as_json:
+        print(BANNER)
+
     if target:
         if target != "skills":
             if only_local or remote or scope is not None or as_json:
@@ -85,11 +89,12 @@ def list_skills(
         lock = get_skills_lock(temp_config)
 
         # Determine targets (where skills should be installed)
-        configured_harnesses = []
+        # Deduplicate by path to avoid showing the same directory multiple times (especially in LOCAL scope)
+        configured_harnesses_paths: dict[Path, list[str]] = {}
 
         # 1. Default scope directory
         default_dir = get_scope_dir(temp_config)
-        configured_harnesses.append((".agents", default_dir))
+        configured_harnesses_paths[default_dir] = [".agents"]
 
         # 2. Configured harnesses
         for harness_name in config.harnesses:
@@ -101,7 +106,10 @@ def list_skills(
                     else harness.global_location
                 )
                 p = Path(loc).expanduser().resolve()
-                configured_harnesses.append((harness_name, p))
+                if p not in configured_harnesses_paths:
+                    configured_harnesses_paths[p] = []
+                if harness_name not in configured_harnesses_paths[p]:
+                    configured_harnesses_paths[p].append(harness_name)
 
         # Filter sources
         sources_to_show = []
@@ -120,7 +128,8 @@ def list_skills(
 
         # Cache harness directory contents to avoid O(N*M) exists() calls
         harness_contents = {}
-        for h_name, h_dir in configured_harnesses:
+        for h_dir, h_names in configured_harnesses_paths.items():
+            primary_name = h_names[0]
             if h_dir.exists():
                 try:
                     # We store a dict of name -> (is_symlink, is_broken, exists)
@@ -136,11 +145,11 @@ def list_skills(
                             else False,
                         }
                         contents[item.name] = info
-                    harness_contents[h_name] = contents
+                    harness_contents[primary_name] = contents
                 except Exception:
-                    harness_contents[h_name] = {}
+                    harness_contents[primary_name] = {}
             else:
-                harness_contents[h_name] = {}
+                harness_contents[primary_name] = {}
 
         for source_key, source in sources_to_show:
             source_type = source.source_type or GITHUB_SOURCE_TYPE
@@ -185,22 +194,24 @@ def list_skills(
                 source_exists = skill_src_dir.exists() if skill_src_dir else False
 
                 status = {}
-                for harness_name, harness_dir in configured_harnesses:
+                for h_dir, h_names in configured_harnesses_paths.items():
+                    primary_name = h_names[0]
+                    display_name = ", ".join(h_names)
                     info = {
-                        "path": format_location_path(harness_dir),
+                        "path": format_location_path(h_dir),
                         "exists": False,
                         "is_symlink": False,
                         "is_broken": False,
                     }
 
-                    h_contents = harness_contents.get(h_name, {})
+                    h_contents = harness_contents.get(primary_name, {})
                     if skill_name in h_contents:
                         item_info = h_contents[skill_name]
                         info["is_symlink"] = item_info["is_symlink"]
                         info["is_broken"] = item_info["is_broken"]
                         info["exists"] = item_info["exists"]
 
-                    status[harness_name] = info
+                    status[display_name] = info
 
                 installed_skills_data.append(
                     {
@@ -216,12 +227,15 @@ def list_skills(
                         "scope": current_scope.value,
                         "version": source.version,
                         "source": source.source,
+                        "category": source.category or "misc",
                     }
                 )
 
         # Scan for unmanaged skills in this scope
-        for harness_name, harness_dir in configured_harnesses:
-            h_contents = harness_contents.get(h_name, {})
+        for h_dir, h_names in configured_harnesses_paths.items():
+            primary_name = h_names[0]
+            display_name = ", ".join(h_names)
+            h_contents = harness_contents.get(primary_name, {})
             for item_name, info in h_contents.items():
                 if info["is_dir"] and item_name not in managed_skill_names:
                     # Check if it has a SKILL.md to be considered a skill
@@ -229,8 +243,8 @@ def list_skills(
                         unmanaged_skills_data.append(
                             {
                                 "name": item_name,
-                                "harness": harness_name,
-                                "path": rel_home(harness_dir / item_name),
+                                "harness": display_name,
+                                "path": rel_home(h_dir / item_name),
                                 "scope": current_scope.value,
                             }
                         )
@@ -253,6 +267,7 @@ def list_skills(
     # Render Table
     table = Table(title="Installed Skills")
     table.add_column("Scope", style="yellow")
+    table.add_column("Category", style="blue")
     table.add_column("Skill Name", style="magenta")
     table.add_column("Repo/Origin", style="cyan")
     table.add_column("Other Locations", style="green")
@@ -305,6 +320,7 @@ def list_skills(
 
         table.add_row(
             skill["scope"].capitalize(),
+            skill["category"],
             skill_display,
             repo_display,
             status_str,
@@ -337,5 +353,11 @@ def list_skills(
     # Render Tips
     print("\n[bold blue]Tips:[/bold blue]")
     print("  - Manage unmanaged: [cyan]jup add <path>[/cyan]")
+    print(
+        "  - Filter by scope: [cyan]jup list --scope local[/cyan] or [cyan]--scope user[/cyan]"
+    )
+    print(
+        "  - Filter by type: [cyan]jup list --only-local[/cyan] or [cyan]--remote[/cyan]"
+    )
     print("  - Fix missing source: [cyan]jup mv <skill> <new-path> --ref-only[/cyan]")
     print("  - Fix broken/missing link: [cyan]jup sync[/cyan]")

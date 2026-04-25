@@ -1,16 +1,7 @@
 import typer
 from importlib.metadata import version as get_version
 from rich import print
-
-
-BANNER = r"""
-[cyan]   _             [/cyan]
-[cyan]  ([/cyan][magenta]●[/magenta][cyan])_   _ _ __  [/cyan]
-[cyan]  | | | | | '_ \ [/cyan]
-[cyan]  | | |_| | |_) |[/cyan]
-[cyan] _/ |\__,_| .__/ [/cyan]
-[cyan]|__/      |_|    [/cyan]
-"""
+from .core.constants import BANNER
 
 
 def version_callback(value: bool):

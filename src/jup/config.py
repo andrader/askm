@@ -6,7 +6,7 @@ from rich import print
 from .models import DEFAULT_HARNESSES, HarnessConfig, JupConfig, SkillsLock
 from .core.lock import LockFileManager
 
-JUP_CONFIG_DIR = Path.home() / ".jup"
+JUP_CONFIG_DIR = Path(os.getenv("JUP_CONFIG_DIR", Path.home() / ".jup"))
 
 
 def get_config() -> JupConfig:

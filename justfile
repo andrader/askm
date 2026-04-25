@@ -32,3 +32,7 @@ docs-serve:
 # Build documentation
 docs-build:
     uv run mkdocs build
+
+# Update documentation screenshots
+update-screenshots:
+    uv run python scripts/update_screenshots.py
