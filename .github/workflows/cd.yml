@@ -1,17 +1,21 @@
-name: CD # Triggering run to verify environment approval gate
+name: CD
 
 on:
   push:
     branches:
       - dev
+      - main
+
 
 concurrency:
   group: cd-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
+  # 1. Publish Beta
   publish-beta:
     name: Publish Beta
+    if: github.ref_name == 'dev' && !contains(github.event.head_commit.message, '[skip beta]')
     permissions:
       id-token: write
       contents: write
@@ -19,23 +23,33 @@ jobs:
     with:
       branch: dev
 
+  # 2. Human Gate
   approval:
     name: Human Gate
     needs: publish-beta
+    if: |
+      always() && 
+      github.ref_name == 'dev' && 
+      (
+        (needs.publish-beta.result == 'success' && needs.publish-beta.outputs.released == 'true') ||
+        (needs.publish-beta.result == 'skipped' && contains(github.event.head_commit.message, '[skip beta]'))
+      )
     runs-on: ubuntu-latest
     environment: production
     steps:
       - name: Await Approval
         run: echo "Approved for production release"
 
+  # 3. Promote to Main
   promote-to-main:
     name: Promote to Main
     needs: approval
+    if: github.ref_name == 'dev' && needs.approval.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: main
@@ -48,9 +62,16 @@ jobs:
           git merge origin/dev -X theirs --no-edit
           git push origin main
 
+  # 4. Publish Stable
   publish-stable:
     name: Publish Stable
-    needs: promote-to-main
+    needs: [promote-to-main, publish-beta]
+    if: |
+      always() &&
+      (
+        (github.ref_name == 'main') || 
+        (github.ref_name == 'dev' && needs.promote-to-main.result == 'success')
+      )
     permissions:
       id-token: write
       contents: write
