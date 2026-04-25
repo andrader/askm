@@ -1,4 +1,4 @@
-name: CD
+name: CD # Triggering run to verify environment approval gate
 
 on:
   push:
