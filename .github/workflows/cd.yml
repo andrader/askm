@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # 1. Publish Beta (Only on dev, and only if [skip beta] is NOT in the commit message)
+  # 1. Publish Beta
   publish-beta:
     name: Publish Beta
     if: github.ref_name == 'dev' && !contains(github.event.head_commit.message, '[skip beta]')
@@ -22,23 +22,24 @@ jobs:
     with:
       branch: dev
 
-  # 2. Human Gate (Only on dev. If beta was skipped, it skips this gate by default unless we adjust)
-  # We'll make it proceed if beta was successful OR if beta was explicitly skipped.
+  # 2. Human Gate
   approval:
     name: Human Gate
     needs: publish-beta
     if: |
       always() && 
       github.ref_name == 'dev' && 
-      (needs.publish-beta.result == 'success' || contains(github.event.head_commit.message, '[skip beta]')) &&
-      (needs.publish-beta.outputs.released == 'true' || contains(github.event.head_commit.message, '[skip beta]'))
+      (
+        (needs.publish-beta.result == 'success' && needs.publish-beta.outputs.released == 'true') ||
+        (needs.publish-beta.result == 'skipped' && contains(github.event.head_commit.message, '[skip beta]'))
+      )
     runs-on: ubuntu-latest
     environment: production
     steps:
       - name: Await Approval
         run: echo "Approved for production release"
 
-  # 3. Promote to Main (Only on dev, after approval)
+  # 3. Promote to Main
   promote-to-main:
     name: Promote to Main
     needs: approval
@@ -60,13 +61,16 @@ jobs:
           git merge origin/dev -X theirs --no-edit
           git push origin main
 
-  # 4. Publish Stable (Runs after promotion OR on direct push to main)
+  # 4. Publish Stable
   publish-stable:
     name: Publish Stable
     needs: [promote-to-main, publish-beta]
     if: |
       always() &&
-      (github.ref_name == 'main' || (github.ref_name == 'dev' && needs.promote-to-main.result == 'success'))
+      (
+        (github.ref_name == 'main') || 
+        (github.ref_name == 'dev' && needs.promote-to-main.result == 'success')
+      )
     permissions:
       id-token: write
       contents: write
