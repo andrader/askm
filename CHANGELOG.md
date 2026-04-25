@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.19.0-beta.1 (2026-04-25)
+
+### Features
+
+- **cli**: Enhance jup list with categories, banner and better isolation
+  ([`2daf122`](https://github.com/andrader/jup/commit/2daf122a77f66080669171d1e683b560e3d23d64))
+
+- Surface git clone errors in jup add to prevent silent exits - Add Category column and jup banner
+  to list output - Fix duplicated unmanaged skills by deduplicating harnesses by path - Add
+  JUP_CONFIG_DIR environment variable support for isolated testing - Add automated screenshot
+  generation script and just recipe - Update documentation screenshots
+
+
 ## v0.18.0 (2026-04-24)
 
 
