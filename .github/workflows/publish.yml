@@ -1,7 +1,5 @@
 name: Publish
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   workflow_call:
@@ -40,7 +38,6 @@ jobs:
 
       - name: Python Semantic Release (Version)
         id: release
-        env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: uv run semantic-release version --skip-build
 
@@ -58,7 +55,6 @@ jobs:
 
       - name: Python Semantic Release (Publish VCS)
         if: ${{ steps.release.outputs.released == 'true' }}
-        env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: uv run semantic-release publish
 
