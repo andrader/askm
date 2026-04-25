@@ -5,28 +5,20 @@ on:
     branches:
       - dev
 
-concurrency:
-  group: cd-${{ github.ref_name }}
-  cancel-in-progress: true
-
 jobs:
   publish-beta:
-    name: Publish Beta
-    uses: andrader/jup/.github/workflows/publish.yml@dev
+    uses: ./.github/workflows/publish.yml
     with:
       branch: dev
 
   approval:
-    name: Human Gate
     needs: publish-beta
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: Await Approval
-        run: echo "Approved for production release"
+      - run: echo "Approved"
 
   promote-to-main:
-    name: Promote to Main
     needs: approval
     runs-on: ubuntu-latest
     permissions:
@@ -34,11 +26,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           ref: main
-
-      - name: Merge dev into main
-        run: |
+          fetch-depth: 0
+      - run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin dev
@@ -46,8 +36,7 @@ jobs:
           git push origin main
 
   publish-stable:
-    name: Publish Stable
     needs: promote-to-main
-    uses: andrader/jup/.github/workflows/publish.yml@dev
+    uses: ./.github/workflows/publish.yml
     with:
       branch: main
