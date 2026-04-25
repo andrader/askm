@@ -44,25 +44,25 @@ jobs:
         run: uv run semantic-release version --skip-build
 
       - name: Build Package
-        if: steps.release.outputs.released == 'true'
+        if: ${{ steps.release.outputs.released == 'true' }}
         run: uv build
 
       - name: Python Semantic Release (Publish VCS)
-        if: steps.release.outputs.released == 'true'
+        if: ${{ steps.release.outputs.released == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: uv run semantic-release publish
 
       - name: Fix permissions
-        if: steps.release.outputs.released == 'true'
+        if: ${{ steps.release.outputs.released == 'true' }}
         run: sudo chown -R $(id -u):$(id -g) dist/
 
       - name: Publish to PyPI
-        if: steps.release.outputs.released == 'true'
+        if: ${{ steps.release.outputs.released == 'true' }}
         run: uv publish
 
       - name: Update Floating Tags
-        if: steps.release.outputs.released == 'true'
+        if: ${{ steps.release.outputs.released == 'true' }}
         run: |
           VERSION="${{ steps.release.outputs.tag }}"
           
@@ -75,14 +75,3 @@ jobs:
             git tag -f stable "$VERSION"
             git push -f origin stable
           fi
-
-      - name: Sync main back to dev
-        if: inputs.branch == 'main' && steps.release.outputs.released == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin dev
-          git checkout dev
-          # Merge main into dev to keep versioning and changelog in sync
-          git merge origin/main --no-edit
-          git push origin dev
