@@ -41,6 +41,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: uv run semantic-release version --skip-build
 
+      - name: Annotate Release
+        run: |
+          if [ "${{ steps.release.outputs.released }}" == "true" ]; then
+            echo "::notice title=Release Success::Released version ${{ steps.release.outputs.tag }} on ${{ inputs.branch }}"
+          else
+            echo "::notice title=Release Skipped::No new version released for ${{ inputs.branch }}"
+          fi
+
       - name: Build Package
         if: ${{ steps.release.outputs.released == 'true' }}
         run: uv build
