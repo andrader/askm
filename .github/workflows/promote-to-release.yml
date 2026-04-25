@@ -30,5 +30,5 @@ jobs:
           git merge origin/dev -X theirs --no-edit
           git push origin main
           
-          # Explicitly trigger the release workflow on main
-          gh workflow run release.yml --ref main
+          # Explicitly trigger the publish workflow on main
+          gh workflow run publish.yml --ref main

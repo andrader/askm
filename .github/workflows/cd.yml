@@ -1,0 +1,49 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  publish-beta:
+    name: Publish Beta
+    uses: ./.github/workflows/publish.yml
+    with:
+      branch: dev
+
+  approval:
+    name: Human Gate
+    needs: publish-beta
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Await Approval
+        run: echo "Approved for production release"
+
+  promote-to-main:
+    name: Promote to Main
+    needs: approval
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Merge dev into main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin dev
+          git merge origin/dev -X theirs --no-edit
+          git push origin main
+
+  publish-stable:
+    name: Publish Stable
+    needs: promote-to-main
+    uses: ./.github/workflows/publish.yml
+    with:
+      branch: main
