@@ -58,7 +58,11 @@ def render_skill_line(
     formatted_installs = f"[{installs:,}]"
 
     # Main label: name (repo)
-    label = f"{name} ({repo})"
+    # If it's a managed skill, show name (repo). If unmanaged, repo might be 'unmanaged'
+    if repo and repo != "unmanaged":
+        label = f"{name} ({repo})"
+    else:
+        label = name
 
     # Calculate how much space we have for the label
     # pointer(2) + prefix(4) + padding(min 1) + installs(len)
@@ -66,7 +70,11 @@ def render_skill_line(
     available_for_label = width - fixed_parts_len
 
     if len(label) > available_for_label:
-        label = label[: max(0, available_for_label - 3)] + "..."
+        # If it doesn't fit, try to show just the name first
+        if len(name) <= available_for_label:
+            label = name
+        else:
+            label = name[: max(0, available_for_label - 3)] + "..."
 
     padding_len = max(0, width - (2 + 4 + len(label) + len(formatted_installs)))
     padding = " " * padding_len

@@ -290,7 +290,7 @@ async def async_tui_main():
             else f"  {t.upper()}  "
             for t in state.tabs
         ]
-        return HTML("".join(tabs))
+        return HTML("".join(tabs) + " <ansiyellow>(EXPERIMENTAL)</ansiyellow>")
 
     def get_sidebar_text():
         lines = []
@@ -301,6 +301,12 @@ async def async_tui_main():
         if not lst:
             return HTML("<ansigray>  No items found.</ansigray>")
 
+        # Sidebar is 40% width. We need to know the actual columns available.
+        # Dimension(weight=4) doesn't give us a fixed number here easily.
+        # Let's assume a reasonable width or calculate based on the app width.
+        # For render_skill_line, let's use a slightly larger width to avoid truncation.
+        sidebar_width = 44
+
         for i, item in enumerate(lst):
             if state.current_tab in ["installed", "discover"]:
                 line = render_skill_line(
@@ -309,7 +315,7 @@ async def async_tui_main():
                     item.get("installs", 0),
                     i in selected,
                     i == idx,
-                    width=38,
+                    width=sidebar_width,
                 )
             else:
                 name = (
@@ -327,8 +333,35 @@ async def async_tui_main():
     def get_footer_text():
         count = len(state.get_current_list())
         sel_count = len(state.get_selected_set())
-        shortcuts = "<b>Tab</b>: Switch | <b>Space</b>: Select | <b>q</b>: Quit"
+        shortcuts = "<b>Tab</b>: Tab | <b>Space</b>: Sel | <b>PgUp/Dn</b>: Scroll Preview | <b>q</b>: Quit"
         return HTML(f" {sel_count}/{count} | {shortcuts}")
+
+    # --- Focus Management & Scrolling ---
+
+    @kb.add("pageup")
+    def _(event):
+        # Scroll preview area up even if it doesn't have focus
+        preview_area.buffer.cursor_up(count=10)
+
+    @kb.add("pagedown")
+    def _(event):
+        # Scroll preview area down
+        preview_area.buffer.cursor_down(count=10)
+
+    @kb.add("right")
+    def _(event):
+        # Allow focusing the preview area for manual scrolling with arrows
+        event.app.layout.focus(preview_area)
+
+    @kb.add("left")
+    def _(event):
+        # Return focus to the sidebar logic (represented by any static control or the app's root)
+        # In this simple layout, we can just focus back on the sidebar control if it was focusable
+        # Since sidebar is a static control in a window, we focus the sidebar window
+        event.app.layout.focus(sidebar_window)
+
+    sidebar_control = FormattedTextControl(get_sidebar_text)
+    sidebar_window = Window(content=sidebar_control, width=Dimension(weight=4))
 
     layout = Layout(
         HSplit(
@@ -341,10 +374,7 @@ async def async_tui_main():
                 Window(height=1, char="-"),
                 VSplit(
                     [
-                        Window(
-                            content=FormattedTextControl(get_sidebar_text),
-                            width=Dimension(weight=4),
-                        ),
+                        sidebar_window,
                         Window(width=1, char="|"),
                         Window(content=preview_area.control, width=Dimension(weight=6)),
                     ]

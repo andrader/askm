@@ -84,6 +84,9 @@ COMMANDS = {
 
 for main_name, (func, aliases) in COMMANDS.items():
     help_str = func.__doc__ or ""
+    if main_name == "tui":
+        help_str = "[yellow](EXPERIMENTAL)[/yellow] " + help_str.strip()
+
     if aliases:
         # Get the first non-empty line of the docstring for the command help summary.
         lines = [line.strip() for line in help_str.split("\n") if line.strip()]
