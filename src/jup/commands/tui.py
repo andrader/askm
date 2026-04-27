@@ -301,14 +301,23 @@ async def async_tui_main():
         if not lst:
             return HTML("<ansigray>  No items found.</ansigray>")
 
-        # Sidebar is 40% width. We need to know the actual columns available.
-        # Dimension(weight=4) doesn't give us a fixed number here easily.
-        # Let's assume a reasonable width or calculate based on the app width.
-        # For render_skill_line, let's use a slightly larger width to avoid truncation.
-        sidebar_width = 44
+        sidebar_width = 58
+
+        # Add Header for skills tabs
+        if state.current_tab in ["installed", "discover"]:
+            from .utils_tui import render_skill_header
+
+            lines.append(render_skill_header(width=sidebar_width))
 
         for i, item in enumerate(lst):
             if state.current_tab in ["installed", "discover"]:
+                # Extract harnesses/agents names
+                harnesses = []
+                if "status" in item:
+                    harnesses = list(item["status"].keys())
+                elif "harness" in item:
+                    harnesses = [item["harness"]]
+
                 line = render_skill_line(
                     item.get("name", "Unknown"),
                     item.get("repo", "unmanaged"),
@@ -316,6 +325,9 @@ async def async_tui_main():
                     i in selected,
                     i == idx,
                     width=sidebar_width,
+                    scope=item.get("scope", ""),
+                    category=item.get("category", ""),
+                    harnesses=harnesses,
                 )
             else:
                 name = (

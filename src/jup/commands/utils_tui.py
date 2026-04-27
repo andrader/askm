@@ -2,7 +2,7 @@ import json
 import urllib.parse
 import urllib.request
 import xml.sax.saxutils as saxutils
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 
 from prompt_toolkit.formatted_text import PygmentsTokens
 from pygments.lexers.markup import MarkdownLexer
@@ -44,45 +44,65 @@ def format_markdown_for_tui(content: str) -> PygmentsTokens:
     return PygmentsTokens(list(MarkdownLexer().get_tokens(content)))
 
 
+def render_skill_header(width: int = 44) -> str:
+    """Render the header for the skill list columns."""
+    #   [ ] S CAT Skill Name (Repo) A
+    return "      <ansicyan>S CAT Skill Name (Repo)      A</ansicyan>"
+
+
 def render_skill_line(
     name: str,
     repo: str,
-    installs: int,
-    is_selected: bool,
-    is_current: bool,
-    width: int = 48,
+    installs: int = 0,
+    is_selected: bool = False,
+    is_current: bool = False,
+    width: int = 44,
+    scope: str = "",
+    category: str = "",
+    harnesses: Optional[List[str]] = None,
 ) -> str:
-    """Render a single line for a skill list in the TUI."""
+    """Render a single line for a skill list in the TUI with multiple columns."""
     prefix = "[x]" if is_selected else "[ ]"
     pointer = ">" if is_current else " "
-    formatted_installs = f"[{installs:,}]"
+
+    # Shorten Scope (U/L)
+    scope_char = scope[0].upper() if scope else "?"
+
+    # Shorten Category (3 chars)
+    cat_short = (category[:3].upper() if category else "---").ljust(3)
+
+    # Agent count
+    agent_count = str(len(harnesses)) if harnesses else "0"
+
+    # Colorize
+    scope_colored = f"<ansiyellow>{scope_char}</ansiyellow>"
+    cat_colored = f"<ansiblue>{cat_short}</ansiblue>"
+    agent_colored = f"<ansigreen>{agent_count}</ansigreen>"
 
     # Main label: name (repo)
-    # If it's a managed skill, show name (repo). If unmanaged, repo might be 'unmanaged'
     if repo and repo != "unmanaged":
         label = f"{name} ({repo})"
     else:
         label = name
 
-    # Calculate how much space we have for the label
-    # pointer(2) + prefix(4) + padding(min 1) + installs(len)
-    fixed_parts_len = 2 + 4 + 1 + len(formatted_installs)
-    available_for_label = width - fixed_parts_len
+    # Calculate space for label
+    # pointer(2) + prefix(4) + scope(2) + cat(4) + agent(2)
+    meta_len = 2 + 4 + 2 + 4 + 2
+    available_for_label = width - meta_len
 
     if len(label) > available_for_label:
-        # If it doesn't fit, try to show just the name first
         if len(name) <= available_for_label:
             label = name
         else:
             label = name[: max(0, available_for_label - 3)] + "..."
 
-    padding_len = max(0, width - (2 + 4 + len(label) + len(formatted_installs)))
+    # Align label to fill space before agent count
+    padding_len = max(0, available_for_label - len(label))
     padding = " " * padding_len
 
     safe_label = saxutils.escape(label)
-    safe_installs = saxutils.escape(formatted_installs)
 
-    content = f"{pointer} {prefix} <b>{safe_label}</b>{padding}<ansigreen>{safe_installs}</ansigreen>"
+    content = f"{pointer} {prefix} {scope_colored} {cat_colored} <b>{safe_label}</b>{padding} {agent_colored}"
 
     if is_current:
         return f"<reverse>{content}</reverse>"
