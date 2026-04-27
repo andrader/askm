@@ -118,6 +118,22 @@ def fetch_remote_skill_md(
     )
 
 
+def extract_skill_description(skill_md_content: str) -> str:
+    """Extract description from SKILL.md frontmatter."""
+    if not skill_md_content.startswith("---"):
+        return ""
+
+    parts = skill_md_content.split("---", 2)
+    if len(parts) < 3:
+        return ""
+
+    frontmatter = parts[1]
+    for line in frontmatter.splitlines():
+        if line.strip().startswith("description:"):
+            return line.split(":", 1)[1].strip()
+    return ""
+
+
 def is_path_in_harness_dir(path: Path, config) -> str | None:
     resolved_path = path.resolve()
     from ..config import get_all_harnesses

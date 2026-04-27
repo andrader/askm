@@ -24,51 +24,21 @@ from ..core.constants import (
 from ..core.filesystem import rel_home
 
 
-def list_skills(
-    target: Optional[str] = typer.Argument(None, hidden=True),
-    only_local: bool = typer.Option(
-        False, "--only-local", help="Show only local skills (from local path source)"
-    ),
-    remote: bool = typer.Option(
-        False, "--remote", help="Show only remote (GitHub) skills"
-    ),
-    scope: Optional[ScopeType] = typer.Option(
-        None, "--scope", help="Filter by scope (global or local)"
-    ),
-    as_json: bool = typer.Option(False, "--json", help="Output in JSON format"),
+from .utils import (
+    extract_skill_description,
+)
+
+
+def get_installed_skills_data(
+    only_local: bool = False,
+    remote: bool = False,
+    scope: Optional[ScopeType] = None,
+    show_descr: bool = False,
 ):
     """
-    List installed skills as a table or JSON.
-
-    Aliases: ls
+    Core logic to gather data about installed and unmanaged skills.
+    Returns a dict with 'installed' and 'unmanaged' lists.
     """
-    if not as_json:
-        print(BANNER)
-
-    if target:
-        if target != "skills":
-            if only_local or remote or scope is not None or as_json:
-                print(
-                    f"[red]Options like --json, --only-local, --remote, --scope are not supported for target '{target}'.[/red]"
-                )
-                raise typer.Exit(code=1)
-
-        if target == "skills":
-            pass
-        elif target in ("agents", "agent", "harness", "harnesses"):
-            from .harness_cli import harness_list
-
-            harness_list()
-            return
-        elif target == "config":
-            from .config_cli import config_show
-
-            config_show()
-            return
-        else:
-            print(f"[red]Unknown list target: {target}[/red]")
-            raise typer.Exit(code=1)
-
     config = get_config()
 
     if scope:
@@ -89,7 +59,6 @@ def list_skills(
         lock = get_skills_lock(temp_config)
 
         # Determine targets (where skills should be installed)
-        # Deduplicate by path to avoid showing the same directory multiple times (especially in LOCAL scope)
         configured_harnesses_paths: dict[Path, list[str]] = {}
 
         # 1. Default scope directory
@@ -126,13 +95,12 @@ def list_skills(
                 p = p.parent
             return rel_home(p)
 
-        # Cache harness directory contents to avoid O(N*M) exists() calls
+        # Cache harness directory contents
         harness_contents = {}
         for h_dir, h_names in configured_harnesses_paths.items():
             primary_name = h_names[0]
             if h_dir.exists():
                 try:
-                    # We store a dict of name -> (is_symlink, is_broken, exists)
                     contents = {}
                     for item in h_dir.iterdir():
                         info = {
@@ -155,7 +123,6 @@ def list_skills(
             source_type = source.source_type or GITHUB_SOURCE_TYPE
             repo_ref = source.repo or source_key
 
-            # Calculate source storage dir for this source
             storage_dir: Path | None = None
             local_source_root: Path | None = None
 
@@ -179,7 +146,6 @@ def list_skills(
             for skill_name in source.skills:
                 managed_skill_names.add(skill_name)
 
-                # Check source existence
                 skill_src_dir = None
                 if source_type == LOCAL_SOURCE_TYPE:
                     if local_source_root:
@@ -192,6 +158,12 @@ def list_skills(
                     skill_src_dir = storage_dir / skill_name
 
                 source_exists = skill_src_dir.exists() if skill_src_dir else False
+
+                description = ""
+                if show_descr and source_exists and skill_src_dir:
+                    skill_md = skill_src_dir / "SKILL.md"
+                    if skill_md.exists():
+                        description = extract_skill_description(skill_md.read_text())
 
                 status = {}
                 for h_dir, h_names in configured_harnesses_paths.items():
@@ -228,6 +200,7 @@ def list_skills(
                         "version": source.version,
                         "source": source.source,
                         "category": source.category or "misc",
+                        "description": description,
                     }
                 )
 
@@ -238,26 +211,90 @@ def list_skills(
             h_contents = harness_contents.get(primary_name, {})
             for item_name, info in h_contents.items():
                 if info["is_dir"] and item_name not in managed_skill_names:
-                    # Check if it has a SKILL.md to be considered a skill
                     if info["has_skill_md"]:
+                        description = ""
+                        if show_descr:
+                            skill_md = h_dir / item_name / "SKILL.md"
+                            if skill_md.exists():
+                                description = extract_skill_description(
+                                    skill_md.read_text()
+                                )
+
                         unmanaged_skills_data.append(
                             {
                                 "name": item_name,
                                 "harness": display_name,
                                 "path": rel_home(h_dir / item_name),
                                 "scope": current_scope.value,
+                                "description": description,
                             }
                         )
 
+    return {
+        "installed": installed_skills_data,
+        "unmanaged": unmanaged_skills_data,
+    }
+
+
+def list_skills(
+    target: Optional[str] = typer.Argument(None, hidden=True),
+    only_local: bool = typer.Option(
+        False, "--only-local", help="Show only local skills (from local path source)"
+    ),
+    remote: bool = typer.Option(
+        False, "--remote", help="Show only remote (GitHub) skills"
+    ),
+    scope: Optional[ScopeType] = typer.Option(
+        None, "--scope", help="Filter by scope (global or local)"
+    ),
+    as_json: bool = typer.Option(False, "--json", help="Output in JSON format"),
+    show_descr: bool = typer.Option(
+        False, "--descr", "--description", help="Show skill descriptions"
+    ),
+):
+    """
+    List installed skills as a table or JSON.
+
+    Aliases: ls
+    """
+    if not as_json:
+        print(BANNER)
+
+    if target:
+        if target != "skills":
+            if only_local or remote or scope is not None or as_json:
+                print(
+                    f"[red]Options like --json, --only-local, --remote, --scope are not supported for target '{target}'.[/red]"
+                )
+                raise typer.Exit(code=1)
+
+        if target == "skills":
+            pass
+        elif target in ("agents", "agent", "harness", "harnesses"):
+            from .harness_cli import harness_list
+
+            harness_list()
+            return
+        elif target == "config":
+            from .config_cli import config_show
+
+            config_show()
+            return
+        else:
+            print(f"[red]Unknown list target: {target}[/red]")
+            raise typer.Exit(code=1)
+
+    data = get_installed_skills_data(
+        only_local=only_local, remote=remote, scope=scope, show_descr=show_descr
+    )
+    installed_skills_data = data["installed"]
+    unmanaged_skills_data = data["unmanaged"]
+
     if as_json:
-        output = {
-            "installed": installed_skills_data,
-            "unmanaged": unmanaged_skills_data,
-        }
         # Use standard print for JSON to avoid rich colorization
         import sys
 
-        sys.stdout.write(json.dumps(output, indent=2) + "\n")
+        sys.stdout.write(json.dumps(data, indent=2) + "\n")
         return
 
     if not installed_skills_data and not unmanaged_skills_data:
@@ -269,6 +306,8 @@ def list_skills(
     table.add_column("Scope", style="yellow")
     table.add_column("Category", style="blue")
     table.add_column("Skill Name", style="magenta")
+    if show_descr:
+        table.add_column("Description", style="italic white")
     table.add_column("Repo/Origin", style="cyan")
     table.add_column("Other Locations", style="green")
     table.add_column("Last Updated", style="white")
@@ -318,14 +357,21 @@ def list_skills(
                 repo_text.append(" ⚠️", style="bold red")
             repo_display = repo_text
 
-        table.add_row(
+        row = [
             skill["scope"].capitalize(),
             skill["category"],
             skill_display,
-            repo_display,
-            status_str,
-            str(last_updated),
+        ]
+        if show_descr:
+            row.append(skill["description"])
+        row.extend(
+            [
+                repo_display,
+                status_str,
+                str(last_updated),
+            ]
         )
+        table.add_row(*row)
 
     if installed_skills_data:
         print(table)
@@ -341,13 +387,17 @@ def list_skills(
         un_table = Table()
         un_table.add_column("Scope", style="yellow")
         un_table.add_column("Skill Name", style="magenta")
+        if show_descr:
+            un_table.add_column("Description", style="italic white")
         un_table.add_column("Harness", style="cyan")
         un_table.add_column("Path", style="green")
 
         for un in unmanaged_skills_data:
-            un_table.add_row(
-                un["scope"].capitalize(), un["name"], un["harness"], un["path"]
-            )
+            row = [un["scope"].capitalize(), un["name"]]
+            if show_descr:
+                row.append(un["description"])
+            row.extend([un["harness"], un["path"]])
+            un_table.add_row(*row)
         print(un_table)
 
     # Render Tips

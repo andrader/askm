@@ -1,6 +1,3 @@
-import json
-import urllib.parse
-import urllib.request
 from typing import Any, Dict
 
 import typer
@@ -11,6 +8,14 @@ from ..context import verbose_state
 from .add import add_skill
 from .utils import (
     fetch_remote_skill_md,
+)
+
+
+from .utils_tui import (
+    search_skills_registry,
+    get_repo_and_path,
+    format_markdown_for_tui,
+    render_skill_line,
 )
 
 
@@ -29,21 +34,11 @@ def find_skills(
 ):
     """Search for skills in the skills.sh registry."""
     verbose_state.verbose = verbose
-    api_url = f"https://skills.sh/api/search?q={urllib.parse.quote(query)}"
 
     if verbose_state.verbose:
-        print(f"Searching registry: [cyan]{api_url}[/cyan]")
+        print(f"Searching registry for query: [cyan]{query}[/cyan]")
 
-    try:
-        req = urllib.request.Request(api_url)
-        req.add_header("User-Agent", "jup-cli")
-        with urllib.request.urlopen(req) as response:
-            data = json.loads(response.read().decode())
-    except Exception as e:
-        print(f"[red]Failed to query the registry: {e}[/red]")
-        raise typer.Exit(code=1)
-
-    skills = data.get("skills", [])
+    skills = search_skills_registry(query)
 
     # Filter by min_installs
     if min_installs > 0:
@@ -95,22 +90,6 @@ def find_skills(
 
     def get_skill_at(idx):
         return skills[idx]
-
-    def get_repo_and_path(skill):
-        source_id = skill.get("id", "")
-        full_path = (
-            source_id.replace("github/", "")
-            if source_id.startswith("github/")
-            else source_id
-        )
-        parts = full_path.split("/")
-        if len(parts) >= 2:
-            repo = f"{parts[0]}/{parts[1]}"
-            internal_path = "/".join(parts[2:]) if len(parts) > 2 else ""
-        else:
-            repo = full_path
-            internal_path = ""
-        return repo, internal_path
 
     def update_preview(event=None):
         skill = get_skill_at(state["index"])
@@ -170,10 +149,7 @@ def find_skills(
 
     def get_list_text():
         lines = []
-        list_width = 48  # Total width for the list entries
         for i, skill in enumerate(skills):
-            prefix = "[x]" if i in state["selected"] else "[ ]"
-            pointer = ">" if i == state["index"] else " "
             name = skill.get("name", "Unknown")
             source_id = skill.get("id", "")
             repo = (
@@ -182,34 +158,16 @@ def find_skills(
                 else source_id
             )
             installs = skill.get("installs", 0)
-            formatted_installs = f"[{installs:,}]"
 
-            # Main label: name (repo)
-            label = f"{name} ({repo})"
-
-            # Calculate how much space we have for the label
-            # pointer(2) + prefix(4) + padding(min 1) + installs(len)
-            fixed_parts_len = 2 + 4 + 1 + len(formatted_installs)
-            available_for_label = list_width - fixed_parts_len
-
-            if len(label) > available_for_label:
-                label = label[: available_for_label - 3] + "..."
-
-            padding_len = list_width - (2 + 4 + len(label) + len(formatted_installs))
-            padding = " " * padding_len
-
-            import xml.sax.saxutils as saxutils
-
-            safe_label = saxutils.escape(label)
-            safe_installs = saxutils.escape(formatted_installs)
-
-            # Construct the line with HTML tags
-            content = f"{pointer} {prefix} <b>{safe_label}</b>{padding}<ansigreen>{safe_installs}</ansigreen>"
-
-            if i == state["index"]:
-                lines.append(f"<reverse>{content}</reverse>")
-            else:
-                lines.append(content)
+            line = render_skill_line(
+                name=name,
+                repo=repo,
+                installs=installs,
+                is_selected=i in state["selected"],
+                is_current=i == state["index"],
+                width=48,
+            )
+            lines.append(line)
         return HTML("\n".join(lines) + "\n")
 
     def get_preview_text():
@@ -217,14 +175,7 @@ def find_skills(
         if state["view"] != "preview" and not content.startswith("#"):
             return "Press [Right] to preview SKILL.md"
 
-        from prompt_toolkit.formatted_text import PygmentsTokens
-        from pygments.lexers.markup import MarkdownLexer
-
-        # We can use Pygments for basic MD highlighting in the TUI
-        # or just return the text. Since we are in a TUI,
-        # actual Rich rendering to the screen is complex.
-        # Let's use PygmentsTokens for a nice look.
-        return PygmentsTokens(list(MarkdownLexer().get_tokens(content)))
+        return format_markdown_for_tui(content)
 
     # We use a simple FormattedTextControl for the preview, but we might want to render it with Rich first
     # For now, let's keep it simple.

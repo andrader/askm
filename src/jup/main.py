@@ -67,6 +67,7 @@ from .commands.list import list_skills  # noqa: E402
 from .commands.show import show_skill  # noqa: E402
 from .commands.find import find_skills  # noqa: E402
 from .commands.mv import move_skill  # noqa: E402
+from .commands.tui import tui_command  # noqa: E402
 
 # Command registration with aliases
 COMMANDS = {
@@ -78,6 +79,7 @@ COMMANDS = {
     "show": (show_skill, []),
     "find": (find_skills, []),
     "move": (move_skill, ["mv"]),
+    "tui": (tui_command, ["ui"]),
 }
 
 for main_name, (func, aliases) in COMMANDS.items():
