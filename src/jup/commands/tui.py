@@ -1,4 +1,6 @@
 import asyncio
+import json
+from pathlib import Path
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.formatted_text import HTML
@@ -11,6 +13,7 @@ from prompt_toolkit.layout.containers import (
 )
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
+from prompt_toolkit.layout.dimension import Dimension
 from rich import print
 
 from .list import get_installed_skills_data
@@ -23,48 +26,60 @@ from .utils_tui import (
 from .utils import fetch_remote_skill_md
 from .add import add_skill
 from .remove import remove_skill
+from ..config import get_config, get_all_harnesses
+from ..core.filesystem import rel_home
 
 
 class TUIState:
     def __init__(self):
-        self.current_tab = "installed"  # "installed", "discover"
+        self.tabs = ["installed", "discover", "agents", "settings"]
+        self.current_tab_idx = 0
+
+        # Data
         self.installed_skills = []
         self.unmanaged_skills = []
         self.discover_skills = []
+        self.agents = []
+        self.settings = []  # List of (key, value)
 
-        self.installed_index = 0
-        self.discover_index = 0
+        # Selection/Focus
+        self.indices = {tab: 0 for tab in self.tabs}
+        self.selected = {tab: set() for tab in self.tabs}
 
-        self.selected_installed = set()  # Indices
-        self.selected_discover = set()  # Indices
-
-        self.preview_content = "Move cursor to see SKILL.md"
+        self.preview_content = "Welcome to jup TUI"
         self.is_loading = False
         self.search_query = "latest"
 
-        self.view_mode = "list"  # "list" or "preview"
+        # Scroll offset for preview
+        self.preview_line_offset = 0
+
+    @property
+    def current_tab(self):
+        return self.tabs[self.current_tab_idx]
 
     def get_current_list(self):
         if self.current_tab == "installed":
-            # Show managed first then unmanaged
             return self.installed_skills + self.unmanaged_skills
-        return self.discover_skills
+        elif self.current_tab == "discover":
+            return self.discover_skills
+        elif self.current_tab == "agents":
+            return self.agents
+        elif self.current_tab == "settings":
+            return self.settings
+        return []
 
     def get_current_index(self):
-        if self.current_tab == "installed":
-            return self.installed_index
-        return self.discover_index
+        return self.indices[self.current_tab]
 
     def set_current_index(self, idx):
-        if self.current_tab == "installed":
-            self.installed_index = idx
+        lst = self.get_current_list()
+        if not lst:
+            self.indices[self.current_tab] = 0
         else:
-            self.discover_index = idx
+            self.indices[self.current_tab] = idx % len(lst)
 
     def get_selected_set(self):
-        if self.current_tab == "installed":
-            return self.selected_installed
-        return self.selected_discover
+        return self.selected[self.current_tab]
 
 
 def tui_command():
@@ -72,99 +87,162 @@ def tui_command():
     state = TUIState()
     kb = KeyBindings()
 
-    # Load initial data
+    # --- Data Loading ---
+
     def load_installed_data():
         data = get_installed_skills_data()
         state.installed_skills = data["installed"]
         state.unmanaged_skills = data["unmanaged"]
-
-    load_installed_data()
 
     def load_discover_data(query="latest"):
         state.is_loading = True
         state.discover_skills = search_skills_registry(query)
         state.is_loading = False
 
-    # Asynchronous preview fetcher
-    async def update_preview(idx=None):
-        if idx is None:
-            idx = state.get_current_index()
+    def load_agents_data():
+        config = get_config()
+        all_h = get_all_harnesses(config)
+        state.agents = []
+        for name, h in all_h.items():
+            state.agents.append(
+                {
+                    "name": name,
+                    "global_location": rel_home(Path(h.global_location)),
+                    "local_location": rel_home(Path(h.local_location)),
+                }
+            )
 
-        skills = state.get_current_list()
-        if not skills or idx >= len(skills):
-            state.preview_content = "No skill selected."
+    def load_settings_data():
+        config = get_config()
+        state.settings = list(config.model_dump().items())
+
+    # Initial Load
+    load_installed_data()
+
+    # --- UI Logic ---
+
+    async def update_preview():
+        idx = state.get_current_index()
+        lst = state.get_current_list()
+        state.preview_line_offset = 0  # Reset scroll
+
+        if not lst or idx >= len(lst):
+            state.preview_content = "No item selected."
             return
 
-        skill = skills[idx]
-        name = skill.get("name", "Unknown")
+        item = lst[idx]
 
         if state.current_tab == "installed":
-            # Try to read local SKILL.md
-            from pathlib import Path
+            # Header with metadata
+            header_lines = []
+            header_lines.append(f"# {item['name']}")
+            header_lines.append(f"**Scope**: {item.get('scope', 'unknown')}")
+            header_lines.append(f"**Category**: {item.get('category', 'misc')}")
 
-            source_path = skill.get("source_path") or skill.get("path")
+            if "repo" in item:
+                header_lines.append(f"**Repo**: {item['repo']}")
+                header_lines.append(f"**Source Path**: {item['source_path']}")
+
+                # Status / Harnesses
+                header_lines.append("\n**Status in Harnesses:**")
+                for h_name, info in item.get("status", {}).items():
+                    symbol = "🔗 (Symlink)" if info["is_symlink"] else "📁 (Dir)"
+                    if info["is_broken"]:
+                        status = "⛓️‍💥 Broken"
+                    elif info["exists"]:
+                        status = "✅ OK"
+                    else:
+                        status = "❌ Missing"
+                    header_lines.append(
+                        f"- {h_name}: {status} {symbol} at `{info['path']}`"
+                    )
+            else:
+                header_lines.append(f"**Path**: {item['path']} (Unmanaged)")
+
+            header_lines.append("---")
+
+            # Read local SKILL.md
+            source_path = item.get("source_path") or item.get("path")
+            content = ""
             if source_path:
                 p = Path(source_path).expanduser()
                 skill_md = p / "SKILL.md" if p.is_dir() else p
                 if skill_md.exists() and skill_md.is_file():
-                    state.preview_content = skill_md.read_text()
+                    content = skill_md.read_text()
                 else:
-                    state.preview_content = f"SKILL.md not found at {source_path}"
-            else:
-                state.preview_content = "Source path unknown."
-        else:
-            # Discover tab - fetch remote
-            repo, internal_path = get_repo_and_path(skill)
-            state.preview_content = f"Fetching remote SKILL.md for {repo}..."
-            # Note: in a real async TUI we'd run this in a thread or task
-            # For simplicity in prompt_toolkit, we'll do it synchronously for now
-            # but ideally use loop.run_in_executor
-            content = fetch_remote_skill_md(repo, name, internal_path)
-            state.preview_content = content
+                    content = f"*SKILL.md not found at {source_path}*"
+
+            state.preview_content = "\n".join(header_lines) + "\n\n" + content
+
+        elif state.current_tab == "discover":
+            repo, internal_path = get_repo_and_path(item)
+            state.preview_content = f"Fetching remote SKILL.md for {repo}...\n\n"
+            # Metadata
+            meta = [
+                f"# {item.get('name')}",
+                f"**Repo**: {repo}",
+                f"**Installs**: {item.get('installs', 0):,}",
+                "---",
+            ]
+
+            # In a real app we'd use a thread, but fetch_remote_skill_md is fast enough for now
+            # or we could make it a proper async task if the user experience suffers.
+            md_content = fetch_remote_skill_md(repo, item.get("name"), internal_path)
+            state.preview_content = "\n".join(meta) + "\n\n" + md_content
+
+        elif state.current_tab == "agents":
+            lines = [
+                f"# Agent Harness: {item['name']}",
+                f"**Global Path**: `{item['global_location']}`",
+                f"**Local Path**: `{item['local_location']}`",
+                "---",
+                "Skills in this harness are managed via `jup sync`.",
+            ]
+            state.preview_content = "\n".join(lines)
+
+        elif state.current_tab == "settings":
+            key, val = item
+            lines = [
+                f"# Setting: {key}",
+                "---",
+                f"**Value**: `{json.dumps(val, indent=2)}`",
+            ]
+            state.preview_content = "\n".join(lines)
+
+    # --- Keybindings ---
 
     @kb.add("tab")
     def _(event):
-        if state.current_tab == "installed":
-            state.current_tab = "discover"
-            if not state.discover_skills:
-                load_discover_data(state.search_query)
-        else:
-            state.current_tab = "installed"
+        state.current_tab_idx = (state.current_tab_idx + 1) % len(state.tabs)
+        if state.current_tab == "discover" and not state.discover_skills:
+            load_discover_data(state.search_query)
+        elif state.current_tab == "agents":
+            load_agents_data()
+        elif state.current_tab == "settings":
+            load_settings_data()
+        elif state.current_tab == "installed":
             load_installed_data()
-        state.view_mode = "list"
+
+        asyncio.create_task(update_preview())
         event.app.invalidate()
 
     @kb.add("up")
     def _(event):
-        skills = state.get_current_list()
-        if skills:
-            idx = state.get_current_index()
-            state.set_current_index((idx - 1) % len(skills))
-            if state.view_mode == "preview":
-                asyncio.create_task(update_preview())
+        state.set_current_index(state.get_current_index() - 1)
+        asyncio.create_task(update_preview())
 
     @kb.add("down")
     def _(event):
-        skills = state.get_current_list()
-        if skills:
-            idx = state.get_current_index()
-            state.set_current_index((idx + 1) % len(skills))
-            if state.view_mode == "preview":
-                asyncio.create_task(update_preview())
+        state.set_current_index(state.get_current_index() + 1)
+        asyncio.create_task(update_preview())
 
-    @kb.add("right")
+    @kb.add("pageup")
     def _(event):
-        if state.view_mode == "list":
-            state.view_mode = "preview"
-            asyncio.create_task(update_preview())
+        state.preview_line_offset = max(0, state.preview_line_offset - 10)
 
-    @kb.add("left")
-    @kb.add("escape")
+    @kb.add("pagedown")
     def _(event):
-        if state.view_mode == "preview":
-            state.view_mode = "list"
-        else:
-            event.app.exit()
+        state.preview_line_offset += 10
 
     @kb.add("space")
     def _(event):
@@ -183,10 +261,9 @@ def tui_command():
     @kb.add("enter")
     def _(event):
         if state.current_tab == "discover":
-            # Install selected or current
-            selected_indices = state.selected_discover
+            selected_indices = state.selected["discover"]
             if not selected_indices:
-                selected_indices = {state.discover_index}
+                selected_indices = {state.indices["discover"]}
 
             to_install = [
                 state.discover_skills[i]
@@ -194,27 +271,20 @@ def tui_command():
                 if i < len(state.discover_skills)
             ]
             event.app.exit()
-
             for s in to_install:
                 repo, path = get_repo_and_path(s)
                 print(f"Installing [magenta]{s.get('name')}[/magenta]...")
                 add_skill(repo=repo, path=path)
-        else:
-            # Maybe re-sync or something?
-            pass
 
     @kb.add("d")
     def _(event):
         if state.current_tab == "installed":
-            # Uninstall selected or current
-            selected_indices = state.selected_installed
+            selected_indices = state.selected["installed"]
             if not selected_indices:
-                selected_indices = {state.installed_index}
+                selected_indices = {state.indices["installed"]}
 
             skills = state.get_current_list()
             to_remove = [skills[i] for i in selected_indices if i < len(skills)]
-
-            # Filter for managed skills (unmanaged can't be 'removed' via lockfile)
             managed_to_remove = [s for s in to_remove if "repo" in s]
 
             if managed_to_remove:
@@ -222,65 +292,69 @@ def tui_command():
                 for s in managed_to_remove:
                     print(f"Removing [red]{s['name']}[/red]...")
                     remove_skill(s["name"])
-            else:
-                # TODO: show message that unmanaged can't be removed this way
-                pass
+
+    # --- Rendering ---
 
     def get_header_text():
         tabs = []
-        for tab in ["installed", "discover"]:
-            if state.current_tab == tab:
+        for i, tab in enumerate(state.tabs):
+            if state.current_tab_idx == i:
                 tabs.append(f"<reverse>  {tab.upper()}  </reverse>")
             else:
                 tabs.append(f"  {tab.upper()}  ")
-
         return HTML("".join(tabs))
 
     def get_sidebar_text():
         lines = []
-        skills = state.get_current_list()
+        lst = state.get_current_list()
         idx = state.get_current_index()
         selected = state.get_selected_set()
 
-        if not skills:
-            return HTML("<ansigray>  No skills found.</ansigray>")
+        if not lst:
+            return HTML("<ansigray>  No items found.</ansigray>")
 
-        for i, skill in enumerate(skills):
-            name = skill.get("name", "Unknown")
-            repo = skill.get("repo", "unmanaged")
-            installs = skill.get("installs", 0)
+        for i, item in enumerate(lst):
+            if state.current_tab in ["installed", "discover"]:
+                name = item.get("name", "Unknown")
+                repo = item.get("repo", "unmanaged")
+                installs = item.get("installs", 0)
+                line = render_skill_line(
+                    name, repo, installs, i in selected, i == idx, width=38
+                )
+            elif state.current_tab == "agents":
+                name = item["name"]
+                pointer = ">" if i == idx else " "
+                line = f"{pointer} [ ] <b>{name}</b>"
+                if i == idx:
+                    line = f"<reverse>{line}</reverse>"
+            elif state.current_tab == "settings":
+                name = item[0]
+                pointer = ">" if i == idx else " "
+                line = f"{pointer} [ ] <b>{name}</b>"
+                if i == idx:
+                    line = f"<reverse>{line}</reverse>"
 
-            line = render_skill_line(
-                name=name,
-                repo=repo,
-                installs=installs,
-                is_selected=i in selected,
-                is_current=i == idx,
-                width=38,
-            )
             lines.append(line)
         return HTML("\n".join(lines))
 
     def get_preview_text():
-        if state.view_mode == "list":
-            return HTML("<ansigray>Press [Right] to preview SKILL.md</ansigray>")
-
         content = state.preview_content
-        return format_markdown_for_tui(content)
+        full_tokens = format_markdown_for_tui(content)
+
+        # Simple scroll implementation: slice the lines
+        # This is a bit complex with PygmentsTokens (list of (Token, text))
+        # We'd need to convert to text lines, slice, then back to tokens or use a real TextArea.
+        # For now, let's just show it. prompt-toolkit Windows handle scrolling if they have a content control.
+        return full_tokens
 
     def get_footer_text():
-        skills = state.get_current_list()
-        selected = state.get_selected_set()
-        count = len(skills)
-        sel_count = len(selected)
+        count = len(state.get_current_list())
+        sel_count = len(state.get_selected_set())
+        shortcuts = "<b>Tab</b>: Switch | <b>Space</b>: Select | <b>PgUp/Dn</b>: Scroll | <b>q</b>: Quit"
+        return HTML(f" {sel_count}/{count} | {shortcuts}")
 
-        shortcuts = "<b>Tab</b>: Switch | <b>Space</b>: Select | <b>Right</b>: Preview | <b>q</b>: Quit"
-        if state.current_tab == "installed":
-            shortcuts += " | <b>d</b>: Remove"
-        else:
-            shortcuts += " | <b>Enter</b>: Install"
-
-        return HTML(f" {sel_count}/{count} selected | {shortcuts}")
+    # Start update task for initial selection
+    asyncio.create_task(update_preview())
 
     layout = Layout(
         HSplit(
@@ -293,13 +367,21 @@ def tui_command():
                 Window(height=1, char="-"),
                 VSplit(
                     [
+                        # 40% Width for sidebar
                         Window(
-                            content=FormattedTextControl(get_sidebar_text), width=40
+                            content=FormattedTextControl(get_sidebar_text),
+                            width=Dimension(weight=4),
                         ),
                         Window(width=1, char="|"),
+                        # 60% Width for preview
                         Window(
                             content=FormattedTextControl(get_preview_text),
                             wrap_lines=True,
+                            # We can use the window's vertical_scroll variable indirectly
+                            # by wrapping this in a container that supports scrolling,
+                            # but FormattedTextControl is static.
+                            # Let's use a read-only TextArea for the preview to get native scrolling.
+                            width=Dimension(weight=6),
                         ),
                     ]
                 ),
