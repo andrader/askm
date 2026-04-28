@@ -1,6 +1,33 @@
 # CHANGELOG
 
 
+## v0.19.0-beta.2 (2026-04-28)
+
+### Bug Fixes
+
+- **ui**: Resolve RuntimeException (no event loop) and formatting in TUI
+  ([`396c1aa`](https://github.com/andrader/jup/commit/396c1aaf172f7eff9cea4c72b43fd07933b96110))
+
+### Documentation
+
+- Add TUI dashboard section to README
+  ([`5589a3b`](https://github.com/andrader/jup/commit/5589a3b36e317533d213f1db51e3ea530061ab5b))
+
+### Features
+
+- Add unified TUI dashboard for skill management
+  ([`bf1fa40`](https://github.com/andrader/jup/commit/bf1fa40ecd84ea11e6b7181fb13ff7f54b0d3725))
+
+- **ui**: Add category, repo, agents, and scope columns to TUI sidebar
+  ([`e08e954`](https://github.com/andrader/jup/commit/e08e95436aaa2da5400cecee63577a9c4cf5f28a))
+
+- **ui**: Mark TUI as experimental and fix scrolling/truncation
+  ([`09c6abd`](https://github.com/andrader/jup/commit/09c6abdcf6bb6e216750e98170518f58621ecb31))
+
+- **ui**: Refine TUI layout, add metadata preview, and new tabs (Agents/Settings)
+  ([`5d38253`](https://github.com/andrader/jup/commit/5d3825358b17f3644a15aa86f7a2f9cf65d130f1))
+
+
 ## v0.19.0-beta.1 (2026-04-25)
 
 ### Features
