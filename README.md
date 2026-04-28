@@ -130,7 +130,35 @@ jup sync --update
 - You can also use `jup sync --check` to only check for updates without applying them.
 - The update status and last checked date are shown in `jup list`.
 
-### 6. Push the managed skills into the configured harness directories 🔄
+### 6. Interactive TUI Dashboard (Experimental) 🖥️
+
+For a more visual management experience, you can use the interactive dashboard:
+
+```bash
+jup ui
+```
+
+(Alias: `jup tui`)
+
+The TUI provides a dual-pane interface with the following tabs:
+
+- **Installed**: Browse managed and unmanaged skills with live status indicators and metadata.
+- **Discover**: Search and preview skills from the `skills.sh` registry.
+- **Agents**: View and manage your configured agent harnesses.
+- **Settings**: Inspect your current `jup` configuration.
+
+#### Keyboard Shortcuts:
+- **`Tab`**: Switch between tabs.
+- **`Up/Down`**: Navigate the list on the left.
+- **`Right`**: Focus the preview pane on the right for manual scrolling.
+- **`Left`**: Return focus to the sidebar list.
+- **`PageUp/PageDown`**: Scroll the preview pane directly.
+- **`Space`**: Toggle skill selection for bulk actions.
+- **`d`**: Remove selected skills (Installed tab).
+- **`Enter`**: Install selected skills (Discover tab).
+- **`q` / `Esc`**: Quit the dashboard.
+
+### 7. Push the managed skills into the configured harness directories 🔄
 
 ```bash
 jup sync
