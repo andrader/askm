@@ -1,6 +1,29 @@
 # CHANGELOG
 
 
+## v0.19.1 (2026-05-03)
+
+### Bug Fixes
+
+- **core**: Replace fcntl with portalocker for cross-platform locking
+  ([`1a02be3`](https://github.com/andrader/jup/commit/1a02be398fe8045ebc34e512b12f31817e07b89b))
+
+The fcntl module is POSIX-only, which made `import jup.core.lock` fail at module load on Windows,
+  blocking every jup command on that platform.
+
+Replace it with portalocker, which exposes the same advisory-locking semantics (LOCK_EX, LOCK_SH,
+  LOCK_UN) on top of fcntl on POSIX and msvcrt on Windows.
+
+- Add portalocker>=2.10.0 as a runtime dependency - Existing concurrency tests
+  (tests/concurrency/test_locking.py) pass unchanged on Windows - Catch
+  portalocker.exceptions.LockException alongside OSError so the existing RuntimeError contract is
+  preserved
+
+Scope is intentionally narrow: this fix unblocks startup. Other Windows compat issues observed
+  during testing (symlink creation requires Developer Mode/admin; some integration tests assume
+  POSIX paths) remain to be addressed in follow-up work.
+
+
 ## v0.19.0 (2026-04-25)
 
 
