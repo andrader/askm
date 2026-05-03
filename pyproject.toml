@@ -5,6 +5,7 @@ description = "jup - Agent Skills Manager"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "portalocker>=2.10.0",
     "prompt-toolkit>=3.0.51",
     "pydantic>=2.10.6",
     "pygments>=2.19.2",
