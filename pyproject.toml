@@ -56,6 +56,8 @@ version_toml = ["pyproject.toml:project.version"]
 build_command = "uv build"
 upload_to_pypi = false
 upload_to_release = true
+allow_zero_version = true
+major_on_zero = false
 
 [tool.semantic_release.branches.main]
 match = "main"
@@ -83,6 +85,10 @@ exclude_commit_patterns = [
     '''test(?:\([^)]*?\))?: .+''',
     '''build\((?!deps\): .+)''',
     '''Initial [Cc]ommit.*''',
+    # version bump commits
+    '''(?:bump|release|version|update)(?:\([^)]*?\))?: .+''',
+    # auto-generated vX.Y.Z tags
+    '''^v\d+\.\d+\.\d+$''',
 ]
 
 [tool.ruff]
