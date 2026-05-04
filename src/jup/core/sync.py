@@ -306,23 +306,30 @@ def _sync_with_lock(
 
                 # Clean up existing managed target
                 if target_skill_dir.exists() or target_skill_dir.is_symlink():
-                    try:
+                    # SAFETY CHECK: Don't remove if target is the same as source!
+                    if target_skill_dir.resolve() == skill_src_dir.resolve():
                         if verbose:
                             _log(
-                                f"🔗 Unlinking [yellow]{rel_home(target_skill_dir)}[/yellow]"
+                                f"⚠️  Target [yellow]{rel_home(target_skill_dir)}[/yellow] is the same as source, skipping cleanup."
                             )
-                        if target_skill_dir.is_symlink():
-                            target_skill_dir.unlink()
-                        elif target_skill_dir.is_dir():
-                            shutil.rmtree(target_skill_dir)
-                        else:
-                            target_skill_dir.unlink()
-                    except Exception as e:
-                        if verbose:
-                            _log(
-                                f"[red]Failed to remove {rel_home(target_skill_dir)}: {e}[/red]"
-                            )
-                        continue
+                    else:
+                        try:
+                            if verbose:
+                                _log(
+                                    f"🔗 Unlinking [yellow]{rel_home(target_skill_dir)}[/yellow]"
+                                )
+                            if target_skill_dir.is_symlink():
+                                target_skill_dir.unlink()
+                            elif target_skill_dir.is_dir():
+                                shutil.rmtree(target_skill_dir)
+                            else:
+                                target_skill_dir.unlink()
+                        except Exception as e:
+                            if verbose:
+                                _log(
+                                    f"[red]Failed to remove {rel_home(target_skill_dir)}: {e}[/red]"
+                                )
+                            continue
 
                 try:
                     if config.sync_mode == SyncMode.LINK:
