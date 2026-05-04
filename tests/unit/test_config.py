@@ -39,9 +39,8 @@ def test_get_config_default(mock_jup_dir):
 
 
 def test_save_and_get_config(mock_jup_dir):
-    config = JupConfig(
-        scope=ScopeType.LOCAL, harnesses=["gemini"], sync_mode=SyncMode.COPY
-    )
+    config = JupConfig(scope=ScopeType.LOCAL, harnesses=["gemini"])
+    config.sync_mode = SyncMode.COPY
     save_config(config)
 
     loaded_config = get_config()

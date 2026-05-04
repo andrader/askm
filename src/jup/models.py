@@ -26,8 +26,6 @@ class JupConfig(BaseModel):
     custom_harnesses: Dict[str, HarnessConfig] = Field(default_factory=dict)
     sync_mode: SyncMode = Field(default=SyncMode.LINK, alias="sync-mode")
 
-    model_config = {"populate_by_name": True}
-
     @field_validator("scope", mode="before")
     @classmethod
     def map_global_to_user(cls, v: str) -> str:
