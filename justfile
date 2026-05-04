@@ -23,7 +23,7 @@ typecheck:
 
 # Run tests
 test:
-    uv run pytest
+    uv run pytest --quiet --quiet
 
 # Serve documentation
 docs-serve:
