@@ -303,12 +303,12 @@ def list_skills(
 
     # Render Table
     table = Table(title="Installed Skills")
-    table.add_column("Scope", style="yellow")
+    table.add_column("Scope", style="yellow", no_wrap=True)
     table.add_column("Category", style="blue")
     table.add_column("Skill Name", style="magenta")
     if show_descr:
         table.add_column("Description", style="italic white")
-    table.add_column("Repo/Origin", style="cyan")
+    table.add_column("Repo/Origin", style="cyan", no_wrap=True)
     table.add_column("Other Locations", style="green")
     table.add_column("Last Updated", style="white")
 

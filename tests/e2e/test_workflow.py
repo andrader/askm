@@ -46,7 +46,7 @@ def test_full_workflow(mock_jup_dir):
         assert not target_skill_dir.is_symlink()
 
         # 4. List
-        result = runner.invoke(app, ["list"])
+        result = runner.invoke(app, ["list"], env={"COLUMNS": "200"})
         assert result.exit_code == 0
         assert "myorg/myskills" in result.stdout
         assert "useful-skill" in result.stdout
