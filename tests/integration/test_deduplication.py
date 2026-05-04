@@ -18,8 +18,8 @@ def mock_jup_dedup_dir(mock_jup_dir, tmp_path):
     mock_harnesses = {
         ".agents": HarnessConfig(
             name=".agents",
-            global_location=str(shared_global),
-            local_location=str(shared_local),
+            global_location=str(tmp_path / "default_global"),
+            local_location=str(tmp_path / "default_local"),
         ),
         "agent1": HarnessConfig(
             name="agent1",
